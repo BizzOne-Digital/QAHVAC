@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
 import { BookingUrgency, PropertyType } from '@/types';
@@ -43,7 +44,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const parsed = await readJsonBody(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
     const {
       customerName,
       email,

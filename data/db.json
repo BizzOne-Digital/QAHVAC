@@ -37,8 +37,8 @@
       "role": "admin",
       "passwordHash": "scrypt$16384$98891cf5a030644f637afb57ccf4e9b0$e3b13523e3fd2e5cf8895c79a5be320d2f5051f73cd3a4bf88e82c629f40b50746ca6e5f15e0f7f0ca683fa4198eda4cd5042a4badaa390957f9e18ce93e2e6b",
       "createdAt": "2026-09-09T13:34:55.379Z",
-      "updatedAt": "2026-09-09T16:13:55.007Z",
-      "lastLoginAt": "2026-09-09T14:18:12.418Z"
+      "updatedAt": "2026-09-09T16:25:17.589Z",
+      "lastLoginAt": "2026-09-09T16:25:17.587Z"
     }
   ],
   "services": [

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
 import { PropertyType } from '@/types';
@@ -22,7 +23,9 @@ export async function GET(req: NextRequest) {
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const parsed = await readJsonBody(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
     const { name, email, phone, propertyType, subject, message } = body;
 
     if (!name || typeof name !== 'string' || name.trim().length < 2) {

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
 
@@ -33,7 +34,9 @@ export async function PATCH(
   }
 
   try {
-    const body = await req.json();
+    const parsed = await readJsonBody(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
     const updated = storage.saveService({
       ...existing,
       ...body,

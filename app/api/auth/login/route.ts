@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { readJsonBody } from '@/lib/http';
 import { authenticateAdmin, setAdminSessionCookie } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json();
+    const parsed = await readJsonBody(req);
+    if (!parsed.ok) return parsed.response;
+    const body = parsed.body;
     const { email, password } = body;
 
     if (!password || typeof password !== 'string') {
