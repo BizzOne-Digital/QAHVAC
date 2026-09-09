@@ -8,7 +8,7 @@ import { Container } from '@/components/ui/Container';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
-import { buildMetadata } from '@/lib/seo';
+import { generatePageMetadata } from '@/lib/seo';
 import { HERO_ART } from '@/lib/images';
 
 /**
@@ -18,11 +18,9 @@ import { HERO_ART } from '@/lib/images';
 export const dynamic = 'force-dynamic';
 
 
-export const metadata = buildMetadata({
-  title: 'Book an Appointment | Father & Son HVAC Scheduling',
-  description: 'Book your heating, air conditioning, heat pump, or emergency service appointment online with QP HVAC. Direct scheduling with Jayson.',
-  path: '/booking',
-});
+export async function generateMetadata() {
+  return generatePageMetadata('booking', '/booking');
+}
 
 function BookingContent() {
   const art = HERO_ART.booking;

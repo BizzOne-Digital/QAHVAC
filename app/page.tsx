@@ -16,7 +16,7 @@ import { Button } from '@/components/ui/Button';
 import { Reveal } from '@/components/ui/Reveal';
 import { storage } from '@/lib/storage';
 import { APP_CONFIG } from '@/lib/config';
-import { generateHvacBusinessSchema } from '@/lib/seo';
+import { generatePageMetadata } from '@/lib/seo';
 
 /**
  * Rendered per request: the page reads live content from the data store, so it
@@ -24,18 +24,17 @@ import { generateHvacBusinessSchema } from '@/lib/seo';
  */
 export const dynamic = 'force-dynamic';
 
+export async function generateMetadata() {
+  return generatePageMetadata('home', '/');
+}
+
 
 export default async function HomePage() {
   const services = await storage.getServices(true);
   const settings = await storage.getSettings();
-  const jsonLd = generateHvacBusinessSchema();
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
 
       {settings.emergencyBanner.enabled && (
         <EmergencyBanner

@@ -8,7 +8,7 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { Eyebrow } from '@/components/ui/Eyebrow';
 import { storage } from '@/lib/storage';
-import { buildMetadata } from '@/lib/seo';
+import { generatePageMetadata } from '@/lib/seo';
 import { HERO_ART } from '@/lib/images';
 import { APP_CONFIG } from '@/lib/config';
 
@@ -19,11 +19,9 @@ import { APP_CONFIG } from '@/lib/config';
 export const dynamic = 'force-dynamic';
 
 
-export const metadata = buildMetadata({
-  title: 'Heating, Cooling & Heat Pump Services | QP HVAC',
-  description: 'Comprehensive HVAC solutions for residential homeowners and commercial facilities. Upfront pricing, factory diagnostics, and precision craftsmanship.',
-  path: '/services',
-});
+export async function generateMetadata() {
+  return generatePageMetadata('services', '/services');
+}
 
 export default async function ServicesPage() {
   const allServices = await storage.getServices(true);

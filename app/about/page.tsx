@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { Reveal } from '@/components/ui/Reveal';
 import { storage } from '@/lib/storage';
 import { APP_CONFIG } from '@/lib/config';
-import { buildMetadata } from '@/lib/seo';
+import { generatePageMetadata } from '@/lib/seo';
 import { HERO_ART, photo } from '@/lib/images';
 
 /**
@@ -21,11 +21,9 @@ import { HERO_ART, photo } from '@/lib/images';
 export const dynamic = 'force-dynamic';
 
 
-export const metadata = buildMetadata({
-  title: 'About Us | Father & Son HVAC Craftsmanship',
-  description: 'Learn about QP HVAC. Dedicated to providing our community with honest pricing, reliable service, and professional craftsmanship you can count on.',
-  path: '/about',
-});
+export async function generateMetadata() {
+  return generatePageMetadata('about', '/about');
+}
 
 const PROMISES = [
   {

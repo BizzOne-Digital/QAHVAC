@@ -12,7 +12,12 @@ import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
 import { Metadata } from 'next';
-import { buildMetadata } from '@/lib/seo';
+import {
+  buildMetadata,
+  generateBreadcrumbSchema,
+  generateServiceSchema,
+  jsonLdScript,
+} from '@/lib/seo';
 
 /**
  * Rendered per request: the page reads live content from the data store, so it
@@ -35,7 +40,9 @@ export async function generateMetadata(
     title: service.title,
     description: service.shortDesc,
     path: `/services/${service.slug}`,
-    image: service.image,
+    image: service.image || undefined,
+    type: 'article',
+    keywords: [service.title, service.category, ...service.features.slice(0, 4)],
   });
 }
 
@@ -58,12 +65,32 @@ export default async function ServiceDetailPage(
     notFound();
   }
 
+  const settings = await storage.getSettings();
+
+  // Service (with its offer) and the trail that reached it.
+  const schemas = [
+    generateServiceSchema(service, settings),
+    generateBreadcrumbSchema([
+      { name: 'Home', path: '/' },
+      { name: 'Services', path: '/services' },
+      { name: service.title, path: `/services/${service.slug}` },
+    ]),
+  ];
+
   const eyebrow = service.emergencyAvailable
     ? `${CATEGORY_LABEL[service.category] ?? 'Service'} · 24/7 dispatch`
     : CATEGORY_LABEL[service.category] ?? 'Service';
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
+      {schemas.map((schema, index) => (
+        <script
+          key={index}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={jsonLdScript(schema)}
+        />
+      ))}
+
       <SiteHeader />
 
       <main className="flex-1">
