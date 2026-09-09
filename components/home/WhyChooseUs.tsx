@@ -68,7 +68,7 @@ export function WhyChooseUs() {
           <div className="lg:col-span-7">
             <ol className="border-t border-line">
               {PRINCIPLES.map((item, index) => (
-                <Reveal as="li" key={item.title} delay={index * 90}>
+                <Reveal as="li" key={item.title} delay={index * 90} repeat>
                   <div className="grid grid-cols-[3rem_1fr] sm:grid-cols-[5rem_1fr] gap-x-4 py-9 border-b border-line">
                     <span className="type-label text-ink-3 pt-1.5">
                       {String(index + 1).padStart(2, '0')}

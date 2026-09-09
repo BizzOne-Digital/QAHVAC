@@ -7,14 +7,25 @@ interface RevealProps {
   className?: string;
   /** Milliseconds. Keep stagger steps to 80–120ms; anything more reads as a loading screen. */
   delay?: number;
-  as?: 'div' | 'li' | 'article' | 'span';
+  as?: 'div' | 'li' | 'article' | 'span' | 'p' | 'h1' | 'h2';
+  /**
+   * Fade back out when the element leaves the viewport, so the copy fades in
+   * again on the way back up. Off by default: cards and list items settle once.
+   */
+  repeat?: boolean;
 }
 
 /**
- * A single, slow entrance. One observer per element, fired once, and skipped
- * entirely when the visitor has asked for reduced motion.
+ * A single, slow entrance. One observer per element, and skipped entirely when
+ * the visitor has asked for reduced motion.
  */
-export function Reveal({ children, className = '', delay = 0, as = 'div' }: RevealProps) {
+export function Reveal({
+  children,
+  className = '',
+  delay = 0,
+  as = 'div',
+  repeat = false,
+}: RevealProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [shown, setShown] = useState(false);
 
@@ -33,9 +44,14 @@ export function Reveal({ children, className = '', delay = 0, as = 'div' }: Reve
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        const entry = entries[0];
+        if (!entry) return;
+
+        if (entry.isIntersecting) {
           setShown(true);
-          observer.disconnect();
+          if (!repeat) observer.disconnect();
+        } else if (repeat) {
+          setShown(false);
         }
       },
       { threshold: 0.12, rootMargin: '0px 0px -8% 0px' }
@@ -43,7 +59,7 @@ export function Reveal({ children, className = '', delay = 0, as = 'div' }: Reve
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
+  }, [repeat]);
 
   const Tag = as as React.ElementType;
 

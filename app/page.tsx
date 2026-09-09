@@ -55,29 +55,33 @@ export default function HomePage() {
           <Container>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-10 gap-x-16">
               <div className="lg:col-span-4">
-                <Eyebrow>Our promise</Eyebrow>
+                <Reveal as="span" className="block" repeat>
+                  <Eyebrow>Our promise</Eyebrow>
+                </Reveal>
               </div>
 
               <div className="lg:col-span-8">
-                <p className="type-display-sm text-ink max-w-[36rem]">{settings.aboutStory}</p>
+                <Reveal as="p" delay={90} repeat className="type-display-sm text-ink max-w-[36rem]">
+                  {settings.aboutStory}
+                </Reveal>
 
                 <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10 mt-16 pt-10 border-t border-line">
-                  <div>
+                  <Reveal delay={0} repeat>
                     <dd className="type-stat text-ink">{settings.stats.yearsExperience}</dd>
                     <dt className="type-meta text-ink-3 mt-3">Years in the trade</dt>
-                  </div>
-                  <div>
+                  </Reveal>
+                  <Reveal delay={90} repeat>
                     <dd className="type-stat text-ink">{settings.stats.familiesServed}</dd>
                     <dt className="type-meta text-ink-3 mt-3">Families served</dt>
-                  </div>
-                  <div>
+                  </Reveal>
+                  <Reveal delay={180} repeat>
                     <dd className="type-stat text-ink">{settings.stats.responseRate}</dd>
                     <dt className="type-meta text-ink-3 mt-3">Typical response</dt>
-                  </div>
-                  <div>
+                  </Reveal>
+                  <Reveal delay={270} repeat>
                     <dd className="type-stat text-ink">{settings.stats.satisfactionRate}</dd>
                     <dt className="type-meta text-ink-3 mt-3">Work stood behind</dt>
-                  </div>
+                  </Reveal>
                 </dl>
               </div>
             </div>
@@ -132,7 +136,7 @@ export default function HomePage() {
         {/* Closing emergency strip */}
         <Section tone="obsidian" space="tight">
           <Container>
-            <Reveal>
+            <Reveal repeat>
               <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-8 gap-x-16 items-end">
                 <div className="lg:col-span-7">
                   <Eyebrow tone="urgent" rule={false}>

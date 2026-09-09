@@ -94,14 +94,20 @@ export default function AboutPage() {
           <Container>
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-10 gap-x-16">
               <div className="lg:col-span-4">
-                <Eyebrow>Every call is personal</Eyebrow>
+                <Reveal as="span" className="block" repeat>
+                  <Eyebrow>Every call is personal</Eyebrow>
+                </Reveal>
               </div>
 
               <div className="lg:col-span-8">
-                <p className="type-display-sm text-ink max-w-[36rem]">{settings.aboutStory}</p>
+                <Reveal as="p" delay={90} repeat className="type-display-sm text-ink max-w-[36rem]">
+                  {settings.aboutStory}
+                </Reveal>
 
                 <div className="mt-12 space-y-6 max-w-[36rem]">
-                  <p className="type-body text-ink-2">{settings.fatherSonPhilosophy}</p>
+                  <Reveal as="p" delay={180} repeat className="type-body text-ink-2">
+                    {settings.fatherSonPhilosophy}
+                  </Reveal>
                   <p className="type-body text-ink-2">
                     Whether that means diagnosing an intermittent flame failure during a blizzard, tuning a
                     central air conditioner before summer, or calculating the heat loss of a two-storey home
@@ -137,7 +143,7 @@ export default function AboutPage() {
 
             <ol className="grid grid-cols-1 md:grid-cols-2 gap-x-16 mt-16 border-t border-line">
               {PROMISES.map((promise, index) => (
-                <Reveal as="li" key={promise.title} delay={index * 90}>
+                <Reveal as="li" key={promise.title} delay={index * 90} repeat>
                   <div className="py-9 border-b border-line h-full">
                     <span className="type-label text-ink-3">{String(index + 1).padStart(2, '0')}</span>
                     <h3 className="type-h3 text-ink mt-4">{promise.title}</h3>

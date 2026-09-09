@@ -2,6 +2,7 @@ import React from 'react';
 import Image from 'next/image';
 import { Container } from '@/components/ui/Container';
 import { Eyebrow } from '@/components/ui/Eyebrow';
+import { Reveal } from '@/components/ui/Reveal';
 
 export interface HeroMetaItem {
   label: string;
@@ -89,15 +90,31 @@ export function PageHero({
               size === 'lg' ? 'max-w-[46rem]' : 'max-w-[40rem]'
             }`}
           >
-            {eyebrow && <Eyebrow tone="inverse">{eyebrow}</Eyebrow>}
+            {/* The hero copy arrives one line at a time, and fades back out
+                on the way past so it re-reads on the return scroll. */}
+            {eyebrow && (
+              <Reveal as="span" className="block" repeat>
+                <Eyebrow tone="inverse">{eyebrow}</Eyebrow>
+              </Reveal>
+            )}
 
-            <h1 className={`${size === 'lg' ? 'type-display' : 'type-display-sm'} text-white ${eyebrow ? 'mt-6' : ''}`}>
+            <Reveal as="h1" delay={90} repeat
+              className={`${size === 'lg' ? 'type-display' : 'type-display-sm'} text-white ${eyebrow ? 'mt-6' : ''}`}
+            >
               {title}
-            </h1>
+            </Reveal>
 
-            {lead && <p className="type-lead text-white/70 mt-6 max-w-[36rem]">{lead}</p>}
+            {lead && (
+              <Reveal as="p" delay={180} repeat className="type-lead text-white/70 mt-6 max-w-[36rem]">
+                {lead}
+              </Reveal>
+            )}
 
-            {actions && <div className="mt-9 flex flex-col sm:flex-row sm:items-center gap-3">{actions}</div>}
+            {actions && (
+              <Reveal delay={270} repeat className="mt-9 flex flex-col sm:flex-row sm:items-center gap-3">
+                {actions}
+              </Reveal>
+            )}
 
             {children}
           </div>
@@ -108,12 +125,12 @@ export function PageHero({
       {meta && meta.length > 0 && (
         <Container className="relative mt-14 sm:mt-20">
           <dl className="grid grid-cols-2 lg:grid-cols-4 gap-x-8 gap-y-8 border-t border-white/15 pt-8">
-            {meta.map((item) => (
-              <div key={item.label}>
+            {meta.map((item, index) => (
+              <Reveal key={item.label} delay={360 + index * 90} repeat>
                 <dt className="type-label text-white/45">{item.label}</dt>
                 <dd className="type-h4 text-white mt-2.5">{item.value}</dd>
                 {item.note && <p className="type-meta text-white/45 mt-1">{item.note}</p>}
-              </div>
+              </Reveal>
             ))}
           </dl>
         </Container>

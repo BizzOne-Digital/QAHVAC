@@ -40,7 +40,7 @@ export function Testimonials() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-x-12 gap-y-12 mt-16 lg:mt-20">
           {REVIEWS.map((review, index) => (
-            <Reveal as="article" key={review.name} delay={index * 100}>
+            <Reveal as="article" key={review.name} delay={index * 100} repeat>
               <figure className="flex flex-col h-full border-t border-line-strong pt-8">
                 <blockquote className="type-lead text-ink flex-1">
                   <span className="type-italic-serif">“</span>
