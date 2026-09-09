@@ -62,12 +62,7 @@ export function ServiceCard({ service, priority = false }: ServiceCardProps) {
           ))}
         </ul>
 
-        <div className="mt-auto pt-6 flex items-end justify-between gap-4">
-          <div>
-            <span className="type-label text-ink-3">From</span>
-            <p className="type-h4 text-ink mt-1.5">{service.priceEstimate}</p>
-          </div>
-
+        <div className="mt-auto pt-6 flex items-end justify-end gap-4">
           <div className="flex flex-col items-end gap-2">
             <Link
               href={`/services/${service.slug}`}

@@ -63,7 +63,6 @@ export default function AdminServicesPage() {
       category: 'heating',
       shortDesc: '',
       fullDesc: '',
-      priceEstimate: 'Diagnostic from $129',
       durationEstimate: '1 – 2 hours',
       features: [],
       image: '',
@@ -187,10 +186,6 @@ export default function AdminServicesPage() {
 
                 <dl className="mt-4 pt-4 border-t border-line space-y-1.5">
                   <div className="flex items-baseline justify-between gap-4">
-                    <dt className="type-meta text-ink-3">Price guide</dt>
-                    <dd className="type-meta text-ink text-right">{svc.priceEstimate}</dd>
-                  </div>
-                  <div className="flex items-baseline justify-between gap-4">
                     <dt className="type-meta text-ink-3">URL</dt>
                     <dd className="type-meta text-ink-2 text-right truncate">/{svc.slug}</dd>
                   </div>
@@ -301,31 +296,17 @@ export default function AdminServicesPage() {
                 />
               </Field>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <Field label="Price guide">
-                  <input
-                    type="text"
-                    value={editingService.priceEstimate || ''}
-                    onChange={e =>
-                      setEditingService({ ...editingService, priceEstimate: e.target.value })
-                    }
-                    placeholder="Diagnostic from $129"
-                    className="field"
-                  />
-                </Field>
-
-                <Field label="Duration estimate">
-                  <input
-                    type="text"
-                    value={editingService.durationEstimate || ''}
-                    onChange={e =>
-                      setEditingService({ ...editingService, durationEstimate: e.target.value })
-                    }
-                    placeholder="1 – 2 hours"
-                    className="field"
-                  />
-                </Field>
-              </div>
+              <Field label="Duration estimate">
+                <input
+                  type="text"
+                  value={editingService.durationEstimate || ''}
+                  onChange={e =>
+                    setEditingService({ ...editingService, durationEstimate: e.target.value })
+                  }
+                  placeholder="1 – 2 hours"
+                  className="field"
+                />
+              </Field>
 
               <Field label="Features" hint="One per line.">
                 <textarea

@@ -26,7 +26,7 @@ export const INITIAL_SETTINGS: SiteSettings = {
   aboutStory: "We are dedicated to providing our community with honest pricing, reliable service, and professional craftsmanship you can count on. For us, every service call is personal, and we treat your home's comfort exactly like we would our own.",
   fatherSonPhilosophy: "When you hire QP HVAC, you aren't dealing with a giant faceless dispatch center or commissioned salespeople trying to push unneeded replacements. You get father and son craftsmen who inspect every valve, burner, coil, and electrical contact with meticulous pride. Our family name and reputation in the community stand behind every job.",
   stats: {
-    yearsExperience: '25+',
+    yearsExperience: '5+',
     familiesServed: '1,400+',
     responseRate: '< 60 Min',
     satisfactionRate: '100%',
@@ -48,7 +48,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Quiet-operation duct balancing & static pressure check',
       '10-year parts & lifetime heat exchanger warranty options'
     ],
-    priceEstimate: 'Diagnostic from $99 | Replacements from $2,800',
     durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
     emergencyAvailable: true,
     image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',
@@ -69,7 +68,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Whole-home dehumidification & smart thermostat pairing',
       '100% satisfaction craftsmanship guarantee'
     ],
-    priceEstimate: 'Diagnostic from $99 | Replacements from $3,100',
     durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
     emergencyAvailable: true,
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg0FJKr_akCWpTXFeEXCoCEunHTkarALqX967icct7Qw&s=10',
@@ -90,7 +88,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Full guidance on regional energy efficiency rebates',
       'Whisper-quiet decibel ratings down to 19 dB'
     ],
-    priceEstimate: 'System assessments from $120 | Systems from $3,800',
     durationEstimate: 'Assessment: 1.5 hours | Install: 1-2 days',
     emergencyAvailable: false,
     image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop',
@@ -111,7 +108,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Residential and light commercial urgent response',
       'Honest recommendation: repair first, replace only when safety demands it'
     ],
-    priceEstimate: 'Emergency dispatch evaluation from $149',
     durationEstimate: 'Immediate response | 1-2 hours on-site',
     emergencyAvailable: true,
     image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1200&auto=format&fit=crop',
@@ -132,7 +128,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Thermostat calibration and safety control limit testing',
       'Detailed digital condition report with honest recommendations'
     ],
-    priceEstimate: 'Seasonal Special: $129 per system',
     durationEstimate: '1 to 1.5 hours per unit',
     emergencyAvailable: false,
     image: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?q=80&w=1200&auto=format&fit=crop',
@@ -153,7 +148,6 @@ export const INITIAL_SERVICES: ServiceItem[] = [
       'Rapid emergency dispatch with commercial priority',
       'Detailed invoicing and equipment lifecycle reporting'
     ],
-    priceEstimate: 'Custom commercial quotes & maintenance plans',
     durationEstimate: 'Tailored to facility size',
     emergencyAvailable: true,
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJXV_5hkVZgYJorVuXTLOhjJaaEkI5LdorzXgZMYuiLg&s=10',

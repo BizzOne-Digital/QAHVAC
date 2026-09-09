@@ -113,8 +113,8 @@ export default async function ServiceDetailPage(
             </>
           }
           meta={[
-            { label: 'Price guide', value: service.priceEstimate, note: 'Exact quote before work begins' },
             { label: 'Typical duration', value: service.durationEstimate, note: '30-minute arrival call-ahead' },
+            { label: 'Quote', value: 'Free, upfront', note: 'Exact quote before work begins' },
           ]}
         />
 

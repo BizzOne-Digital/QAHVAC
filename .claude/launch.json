@@ -4,8 +4,12 @@
     {
       "name": "qp-hvac-dev",
       "runtimeExecutable": "npx",
-      "runtimeArgs": ["next", "dev", "-p", "3111"],
-      "port": 3111
+      "runtimeArgs": [
+        "next",
+        "dev"
+      ],
+      "port": 3111,
+      "autoPort": true
     }
   ]
 }

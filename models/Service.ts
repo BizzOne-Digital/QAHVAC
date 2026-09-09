@@ -14,7 +14,6 @@ const ServiceSchema = new Schema<ServiceItem>(
     shortDesc: { type: String, required: true },
     fullDesc: { type: String, default: '' },
     features: { type: [String], default: [] },
-    priceEstimate: { type: String, default: '' },
     durationEstimate: { type: String, default: '' },
     emergencyAvailable: { type: Boolean, default: false },
     image: { type: String, default: '' },

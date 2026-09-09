@@ -8,7 +8,6 @@ export interface ServiceItem {
   shortDesc: string;
   fullDesc: string;
   features: string[];
-  priceEstimate: string;
   durationEstimate: string;
   emergencyAvailable: boolean;
   image: string;

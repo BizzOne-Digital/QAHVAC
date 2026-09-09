@@ -337,12 +337,10 @@ export function generateServiceSchema(service: ServiceItem, settings?: SiteSetti
       '@type': 'AdministrativeArea',
       name: settings?.serviceArea || 'Greater region and surrounding communities',
     },
-    // The catalogue quotes guide pricing in prose ("Diagnostic from $99"), so
-    // the offer carries that text rather than inventing a numeric price.
+    // Pricing is not published on the site; every job is quoted individually,
+    // so the offer states availability only and carries no price.
     offers: {
       '@type': 'Offer',
-      priceCurrency: 'CAD',
-      description: service.priceEstimate,
       availability: 'https://schema.org/InStock',
       url,
     },

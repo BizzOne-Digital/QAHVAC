@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const { title, category, shortDesc, fullDesc, priceEstimate, durationEstimate, features, image } = body;
+    const { title, category, shortDesc, fullDesc, durationEstimate, features, image } = body;
 
     if (!title || !shortDesc) {
       return NextResponse.json({ success: false, error: 'Title and short description are required.' }, { status: 400 });
@@ -44,7 +44,6 @@ export async function POST(req: NextRequest) {
       shortDesc: shortDesc.trim(),
       fullDesc: (fullDesc || shortDesc).trim(),
       features: Array.isArray(features) ? features : [],
-      priceEstimate: priceEstimate || 'Custom Quote',
       durationEstimate: durationEstimate || '1-2 hours',
       emergencyAvailable: !!body.emergencyAvailable,
       image: image || 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',

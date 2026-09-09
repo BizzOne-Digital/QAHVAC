@@ -215,7 +215,6 @@ async function main() {
         shortDesc: 'Temporary service created by the API test suite.',
         fullDesc: 'Temporary service created by the API test suite.',
         features: ['Check one', 'Check two'],
-        priceEstimate: '$1',
         durationEstimate: '1 hour',
         active: false,
       },
