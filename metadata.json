@@ -1,0 +1,6 @@
+{
+  "name": "QP HVAC - Heating & Cooling Solutions",
+  "description": "Family Values, Professional Comfort: Father and Son keeping your home's heating and cooling running at its best. Residential & commercial HVAC services in your community.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
