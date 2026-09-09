@@ -17,7 +17,7 @@ export async function PATCH(
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const updated = storage.updateInquiry(id, body);
+    const updated = await storage.updateInquiry(id, body);
 
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Inquiry not found.' }, { status: 404 });
@@ -40,7 +40,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const deleted = storage.deleteInquiry(id);
+  const deleted = await storage.deleteInquiry(id);
 
   if (!deleted) {
     return NextResponse.json({ success: false, error: 'Inquiry not found.' }, { status: 404 });

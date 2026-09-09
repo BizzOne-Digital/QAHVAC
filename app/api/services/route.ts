@@ -8,7 +8,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const activeOnly = searchParams.get('active') === 'true';
 
-  const services = storage.getServices(activeOnly);
+  const services = await storage.getServices(activeOnly);
   return NextResponse.json({ success: true, data: services });
 }
 
@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
       .replace(/(^-|-$)+/g, '');
 
     const id = `srv-${Date.now()}`;
-    const allServices = storage.getServices();
+    const allServices = await storage.getServices();
 
     const newService: ServiceItem = {
       id,
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
       order: allServices.length + 1,
     };
 
-    const saved = storage.saveService(newService);
+    const saved = await storage.saveService(newService);
     return NextResponse.json({ success: true, data: saved }, { status: 201 });
   } catch (error) {
     console.error('Error creating service:', error);

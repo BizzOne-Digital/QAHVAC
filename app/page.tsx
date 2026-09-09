@@ -25,9 +25,9 @@ import { generateHvacBusinessSchema } from '@/lib/seo';
 export const dynamic = 'force-dynamic';
 
 
-export default function HomePage() {
-  const services = storage.getServices(true);
-  const settings = storage.getSettings();
+export default async function HomePage() {
+  const services = await storage.getServices(true);
+  const settings = await storage.getSettings();
   const jsonLd = generateHvacBusinessSchema();
 
   return (

@@ -4,7 +4,7 @@ import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
 
 export async function GET() {
-  const settings = storage.getSettings();
+  const settings = await storage.getSettings();
   return NextResponse.json({ success: true, data: settings });
 }
 
@@ -18,7 +18,7 @@ export async function PATCH(req: NextRequest) {
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const updated = storage.updateSettings(body);
+    const updated = await storage.updateSettings(body);
     return NextResponse.json({ success: true, data: updated, message: 'Settings saved successfully.' });
   } catch (error) {
     console.error('Error updating settings:', error);

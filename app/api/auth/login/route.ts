@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Email must be a string.' }, { status: 400 });
     }
 
-    const result = authenticateAdmin(email, password);
+    const result = await authenticateAdmin(email, password);
 
     if (!result.success) {
       return NextResponse.json({ success: false, error: result.error }, { status: 401 });

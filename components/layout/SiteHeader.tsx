@@ -8,7 +8,7 @@ import { toSiteContact } from '@/lib/site';
  * the navigation always matches what the dashboard has saved, with no client
  * round trip. Client-only pages can still render <Navbar /> directly.
  */
-export function SiteHeader() {
-  const settings = storage.getSettings();
+export async function SiteHeader() {
+  const settings = await storage.getSettings();
   return <Navbar contact={toSiteContact(settings)} logoUrl={settings.logoUrl} />;
 }

@@ -1,502 +1,269 @@
-import fs from 'fs';
-import path from 'path';
 import { AdminUser, Booking, ContactSubmission, ServiceItem, SiteSettings } from '@/types';
-import { APP_CONFIG } from './config';
+import { connectToDatabase } from './mongodb';
+import { INITIAL_SERVICES, INITIAL_SETTINGS } from './seed-data';
+import { AdminModel } from '@/models/Admin';
+import { BookingModel } from '@/models/Booking';
+import { InquiryModel } from '@/models/Inquiry';
+import { ServiceModel } from '@/models/Service';
+import { SettingsModel } from '@/models/Settings';
 
-interface DatabaseSchema {
-  settings: SiteSettings;
-  admins: AdminUser[];
-  services: ServiceItem[];
-  bookings: Booking[];
-  inquiries: ContactSubmission[];
+/**
+ * The application's data store, backed by MongoDB.
+ *
+ * This used to read and write `data/db.json`. A serverless host mounts the
+ * filesystem read-only, so every write threw and surfaced as a 500 — including
+ * admin sign-in, which stamps a last-login time. Everything now lives in the
+ * same database the uploaded images do, and survives redeployments.
+ *
+ * Every method is async. Documents keep their original string `id` values so
+ * existing URLs, slugs and booking references stay valid.
+ */
+
+/**
+ * Drops Mongo's own bookkeeping fields (`_id`, `__v`) so callers get the plain
+ * domain shape they had when this was a JSON file. Documents that carry their
+ * own ISO-string `createdAt`/`updatedAt` keep them; Mongoose's Date versions of
+ * those fields are discarded.
+ */
+function strip<T>(doc: unknown): T | undefined {
+  if (!doc) return undefined;
+
+  const {
+    _id: _ignoredId,
+    __v: _ignoredVersion,
+    createdAt,
+    updatedAt,
+    ...rest
+  } = doc as Record<string, unknown>;
+
+  const result = rest as Record<string, unknown>;
+  if (typeof createdAt === 'string') result.createdAt = createdAt;
+  if (typeof updatedAt === 'string') result.updatedAt = updatedAt;
+
+  return result as T;
 }
 
-const DATA_DIR = path.join(process.cwd(), 'data');
-const DB_FILE = path.join(DATA_DIR, 'db.json');
-
-const INITIAL_SETTINGS: SiteSettings = {
-  businessName: 'QP HVAC',
-  tagline: "Family Values, Professional Comfort: Father and Son keeping your home's heating and cooling running at its best",
-  contactPerson: 'Jayson',
-  phone: '12269263032',
-  email: 'qphvac00@gmail.com',
-  serviceArea: 'Greater Region & Surrounding Communities',
-  hours: {
-    weekdays: '7:00 AM - 8:00 PM',
-    saturday: '8:00 AM - 6:00 PM',
-    sunday: '9:00 AM - 4:00 PM',
-    emergency: '24/7 Emergency Dispatch Available',
-  },
-  emergencyBanner: {
-    enabled: true,
-    headline: 'Emergency Heating & Cooling Dispatch',
-    message: 'Furnace out in winter or AC down during heatwave? Our father-and-son team is ready to respond.',
-    phone: '12269263032',
-  },
-  aboutStory: "We are dedicated to providing our community with honest pricing, reliable service, and professional craftsmanship you can count on. For us, every service call is personal, and we treat your home's comfort exactly like we would our own.",
-  fatherSonPhilosophy: "When you hire QP HVAC, you aren't dealing with a giant faceless dispatch center or commissioned salespeople trying to push unneeded replacements. You get father and son craftsmen who inspect every valve, burner, coil, and electrical contact with meticulous pride. Our family name and reputation in the community stand behind every job.",
-  stats: {
-    yearsExperience: '25+',
-    familiesServed: '1,400+',
-    responseRate: '< 60 Min',
-    satisfactionRate: '100%',
-  },
-};
-
-const INITIAL_SERVICES: ServiceItem[] = [
-  {
-    id: 'srv-furnace',
-    slug: 'furnace-heating-repair-installation',
-    title: 'High-Efficiency Furnace & Heating Systems',
-    category: 'heating',
-    shortDesc: 'Precision diagnostic repairs, certified heat exchanger inspections, and top-tier furnace replacements for uninterrupted winter warmth.',
-    fullDesc: 'From pilot light troubleshooting and blower motor replacements to full 96%+ AFUE high-efficiency furnace upgrades, our father-and-son team ensures your home stays warm and safe even during the harshest sub-zero weather. Every installation is custom-calibrated for optimal static pressure and airflow.',
-    features: [
-      'Comprehensive safety & carbon monoxide testing',
-      'Gas valve, thermocouple, and flame sensor diagnostics',
-      'Multi-stage and variable speed high-efficiency installations',
-      'Quiet-operation duct balancing & static pressure check',
-      '10-year parts & lifetime heat exchanger warranty options'
-    ],
-    priceEstimate: 'Diagnostic from $99 | Replacements from $2,800',
-    durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
-    emergencyAvailable: true,
-    image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',
-    active: true,
-    order: 1,
-  },
-  {
-    id: 'srv-ac',
-    slug: 'air-conditioning-cooling',
-    title: 'Precision Air Conditioning & Central Air',
-    category: 'cooling',
-    shortDesc: 'High-performance AC diagnostics, refrigerant leak detection, and quiet central cooling installations that conquer summer heat.',
-    fullDesc: 'Beat the humid summer heat with whisper-quiet, energy-efficient cooling. We specialize in diagnosing failing compressors, leaking coils, clogged condensate lines, and aging condenser units. We install top-tier 16+ SEER2 cooling equipment that cuts electric bills while maintaining crisp, dehumidified indoor air.',
-    features: [
-      'EPA-certified eco-friendly refrigerant recharge & leak testing',
-      'Condenser fan motor, dual capacitor, and contactor service',
-      'Evaporator coil deep chemical cleaning & sanitization',
-      'Whole-home dehumidification & smart thermostat pairing',
-      '100% satisfaction craftsmanship guarantee'
-    ],
-    priceEstimate: 'Diagnostic from $99 | Replacements from $3,100',
-    durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
-    emergencyAvailable: true,
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg0FJKr_akCWpTXFeEXCoCEunHTkarALqX967icct7Qw&s=10',
-    active: true,
-    order: 2,
-  },
-  {
-    id: 'srv-heatpump',
-    slug: 'cold-climate-heat-pumps',
-    title: 'Cold-Climate Heat Pumps & Ductless Mini-Splits',
-    category: 'heat-pumps',
-    shortDesc: 'Dual-fuel heating & cooling in a single engineered system. Maximized rebates and year-round ultra-efficient climate control.',
-    fullDesc: 'Modern cold-climate inverter heat pumps operate down to -25°C with astonishing efficiency, providing warm winters and refreshing summers without burning fossil fuels. Whether you need a central conversion or zoned ductless heads for additions and garages, we guide you through available green energy rebates.',
-    features: [
-      'Variable-speed inverter technology for steady, even temperatures',
-      'Multi-zone ductless wall-mount and ceiling cassette layouts',
-      'Dual-fuel hybrid setups pairing heat pump with gas furnace backup',
-      'Full guidance on regional energy efficiency rebates',
-      'Whisper-quiet decibel ratings down to 19 dB'
-    ],
-    priceEstimate: 'System assessments from $120 | Systems from $3,800',
-    durationEstimate: 'Assessment: 1.5 hours | Install: 1-2 days',
-    emergencyAvailable: false,
-    image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop',
-    active: true,
-    order: 3,
-  },
-  {
-    id: 'srv-emergency',
-    slug: 'emergency-24-7-repair',
-    title: '24/7 Rapid Emergency Heating & Cooling Dispatch',
-    category: 'emergency',
-    shortDesc: 'Immediate response when your system fails during extreme weather. Direct phone line with Jayson and prioritized dispatch.',
-    fullDesc: 'No heat on freezing winter nights or an AC breakdown during a record heatwave with vulnerable family members? We treat emergencies with absolute urgency. Our service vehicles are fully stocked with universal capacitors, control boards, draft inducers, and transformers for immediate same-day restoration.',
-    features: [
-      'Direct line to Jayson (No overseas answering service)',
-      'Fully equipped mobile inventory for same-day repairs',
-      'Transparent flat-rate emergency diagnostic pricing',
-      'Residential and light commercial urgent response',
-      'Honest recommendation: repair first, replace only when safety demands it'
-    ],
-    priceEstimate: 'Emergency dispatch evaluation from $149',
-    durationEstimate: 'Immediate response | 1-2 hours on-site',
-    emergencyAvailable: true,
-    image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1200&auto=format&fit=crop',
-    active: true,
-    order: 4,
-  },
-  {
-    id: 'srv-maintenance',
-    slug: 'seasonal-tuneup-maintenance',
-    title: '21-Point Seasonal HVAC Tune-Up & Safety Audit',
-    category: 'maintenance',
-    shortDesc: 'Prevent sudden breakdowns, extend equipment lifespan by up to 50%, and keep utility bills low with scheduled seasonal tune-ups.',
-    fullDesc: 'Just like a luxury performance car, your HVAC system requires seasonal tuning to maintain efficiency and avoid catastrophic wear. Our comprehensive 21-point checklist cleans essential sensors, lubricates bearings, flushes drain traps, tightens electrical lugs, and measures amp draws for peak reliability.',
-    features: [
-      'Amp draw and voltage measurement across all motors',
-      'Combustion analysis and heat exchanger safety inspection',
-      'Filter check, static pressure profiling, and airflow balancing',
-      'Thermostat calibration and safety control limit testing',
-      'Detailed digital condition report with honest recommendations'
-    ],
-    priceEstimate: 'Seasonal Special: $129 per system',
-    durationEstimate: '1 to 1.5 hours per unit',
-    emergencyAvailable: false,
-    image: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?q=80&w=1200&auto=format&fit=crop',
-    active: true,
-    order: 5,
-  },
-  {
-    id: 'srv-commercial',
-    slug: 'commercial-hvac-services',
-    title: 'Commercial HVAC & Light Industrial Solutions',
-    category: 'commercial',
-    shortDesc: 'Custom maintenance contracts, rooftop package units (RTUs), and ventilation management for retail, offices, and facilities.',
-    fullDesc: 'Uncomfortable tenants or broken restaurant AC directly impacts your bottom line. We provide reliable commercial HVAC maintenance, rooftop unit replacements, economizer diagnostics, and tenant-space climate balancing with flexible scheduling that will not disrupt your business hours.',
-    features: [
-      'Rooftop Package Units (RTU) maintenance & replacements',
-      'Commercial preventive maintenance service contracts',
-      'Economizer testing and fresh-air intake optimization',
-      'Rapid emergency dispatch with commercial priority',
-      'Detailed invoicing and equipment lifecycle reporting'
-    ],
-    priceEstimate: 'Custom commercial quotes & maintenance plans',
-    durationEstimate: 'Tailored to facility size',
-    emergencyAvailable: true,
-    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJXV_5hkVZgYJorVuXTLOhjJaaEkI5LdorzXgZMYuiLg&s=10',
-    active: true,
-    order: 6,
-  }
-];
-
-const INITIAL_BOOKINGS: Booking[] = [
-  {
-    id: 'bkg-101',
-    referenceNumber: 'QP-2026-8801',
-    customerName: 'Marcus Vance',
-    email: 'marcus.vance@example.com',
-    phone: '226-555-0142',
-    propertyType: 'residential',
-    serviceId: 'srv-furnace',
-    serviceName: 'High-Efficiency Furnace & Heating Systems',
-    preferredDate: '2026-09-12',
-    preferredTimeSlot: 'Morning (8:00 AM - 12:00 PM)',
-    urgency: 'standard',
-    address: {
-      street: '45 Heritage Court',
-      city: 'London',
-      postalCode: 'N6G 2T4',
-    },
-    equipmentAge: '12 years old',
-    issueDescription: 'Furnace making a distinct humming noise when kicking on, and taking longer than usual to heat upstairs bedrooms.',
-    status: 'confirmed',
-    technicianNotes: 'Confirmed with Marcus. Slotted for Jayson and team. Bring universal 40uF capacitors and draft inducer motor just in case.',
-    assignedTechnician: 'Jayson (Lead Craftsman)',
-    createdAt: '2026-09-07T10:15:00.000Z',
-    updatedAt: '2026-09-07T14:30:00.000Z',
-  },
-  {
-    id: 'bkg-102',
-    referenceNumber: 'QP-2026-8802',
-    customerName: 'Elena Rostova',
-    email: 'elena.rostova@boutique-cafe.com',
-    phone: '226-555-0189',
-    propertyType: 'commercial',
-    serviceId: 'srv-commercial',
-    serviceName: 'Commercial HVAC & Light Industrial Solutions',
-    preferredDate: '2026-09-14',
-    preferredTimeSlot: 'Early Afternoon (12:00 PM - 3:00 PM)',
-    urgency: 'standard',
-    address: {
-      street: '124 Downtown Main Blvd, Suite 2',
-      city: 'London',
-      postalCode: 'N6A 1H9',
-    },
-    equipmentAge: '7 years old',
-    issueDescription: 'Quarterly rooftop unit filter change and belt inspection for commercial kitchen / front cafe seating area.',
-    status: 'pending',
-    technicianNotes: 'Pending client confirmation for ladder access key.',
-    assignedTechnician: 'Father & Son Crew',
-    createdAt: '2026-09-08T09:40:00.000Z',
-    updatedAt: '2026-09-08T09:40:00.000Z',
-  },
-  {
-    id: 'bkg-103',
-    referenceNumber: 'QP-2026-8803',
-    customerName: 'David Chen',
-    email: 'david.chen@homemail.net',
-    phone: '226-555-0211',
-    propertyType: 'residential',
-    serviceId: 'srv-heatpump',
-    serviceName: 'Cold-Climate Heat Pumps & Ductless Mini-Splits',
-    preferredDate: '2026-09-15',
-    preferredTimeSlot: 'Late Afternoon (3:00 PM - 6:00 PM)',
-    urgency: 'flexible',
-    address: {
-      street: '88 Riverview Crescent',
-      city: 'London',
-      postalCode: 'N6K 1A3',
-    },
-    equipmentAge: '15+ years old (looking to replace old oil tank/furnace)',
-    issueDescription: 'Interested in heat pump conversion quote to eliminate oil heating and qualify for federal/provincial green home energy rebates.',
-    status: 'pending',
-    technicianNotes: 'Prepare load calculation sheet (Manual J) for quotation.',
-    assignedTechnician: 'Jayson',
-    createdAt: '2026-09-08T14:10:00.000Z',
-    updatedAt: '2026-09-08T14:10:00.000Z',
-  }
-];
-
-const INITIAL_INQUIRIES: ContactSubmission[] = [
-  {
-    id: 'inq-201',
-    name: 'Sarah MacIntyre',
-    email: 'sarah.mac@outlook.com',
-    phone: '226-555-0344',
-    propertyType: 'residential',
-    subject: 'Question regarding AC noise and thermostat calibration',
-    message: 'Hello Jayson, our smart thermostat lost connection and the outdoor unit is clicking repeatedly without the fan spinning. Would like an honest assessment on whether it can be repaired or needs replacement. Thank you!',
-    status: 'new',
-    createdAt: '2026-09-08T11:25:00.000Z',
-  },
-  {
-    id: 'inq-202',
-    name: 'Robert Miller',
-    email: 'rmiller@apexlegal.ca',
-    phone: '226-555-0988',
-    propertyType: 'commercial',
-    subject: 'Annual HVAC Maintenance Agreement for law office',
-    message: 'We occupy a 3,500 sq ft standalone building downtown. Looking for a reliable local HVAC contractor for semi-annual spring/fall servicing. Father and son team comes highly recommended.',
-    status: 'contacted',
-    adminNotes: 'Spoke with Robert on phone. Sent draft maintenance agreement.',
-    createdAt: '2026-09-06T15:00:00.000Z',
-  }
-];
-
-function ensureDataDirectory(): void {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+function stripAll<T>(docs: unknown[]): T[] {
+  return docs.map(d => strip<T>(d)).filter((d): d is T => Boolean(d));
 }
 
-function getDatabase(): DatabaseSchema {
-  ensureDataDirectory();
-  if (!fs.existsSync(DB_FILE)) {
-    const initialDb: DatabaseSchema = {
-      settings: INITIAL_SETTINGS,
-      admins: [],
-      services: INITIAL_SERVICES,
-      bookings: INITIAL_BOOKINGS,
-      inquiries: INITIAL_INQUIRIES,
-    };
-    fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
-    return initialDb;
-  }
-
-  try {
-    const raw = fs.readFileSync(DB_FILE, 'utf-8');
-    const parsed = JSON.parse(raw);
-    return {
-      settings: { ...INITIAL_SETTINGS, ...(parsed.settings || {}) },
-      admins: parsed.admins || [],
-      services: parsed.services?.length ? parsed.services : INITIAL_SERVICES,
-      bookings: parsed.bookings || [],
-      inquiries: parsed.inquiries || [],
-    };
-  } catch (err) {
-    console.error('Error reading db.json, returning defaults:', err);
-    return {
-      settings: INITIAL_SETTINGS,
-      admins: [],
-      services: INITIAL_SERVICES,
-      bookings: INITIAL_BOOKINGS,
-      inquiries: INITIAL_INQUIRIES,
-    };
-  }
+function nowIso(): string {
+  return new Date().toISOString();
 }
 
-function saveDatabase(db: DatabaseSchema): void {
-  ensureDataDirectory();
-  fs.writeFileSync(DB_FILE, JSON.stringify(db, null, 2), 'utf-8');
+function randomId(prefix: string): string {
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
 }
 
-// Data access operations
 export const storage = {
-  // Settings
-  getSettings: (): SiteSettings => {
-    return getDatabase().settings;
-  },
-  updateSettings: (updates: Partial<SiteSettings>): SiteSettings => {
-    const db = getDatabase();
-    db.settings = { ...db.settings, ...updates };
-    saveDatabase(db);
-    return db.settings;
-  },
+  /* ------------------------------------------------------------- Settings */
 
-  // Admin accounts
-  getAdmins: (): AdminUser[] => {
-    return getDatabase().admins;
-  },
-  getAdminById: (id: string): AdminUser | undefined => {
-    return getDatabase().admins.find(a => a.id === id);
-  },
-  getAdminByEmail: (email: string): AdminUser | undefined => {
-    const normalised = email.trim().toLowerCase();
-    return getDatabase().admins.find(a => a.email.toLowerCase() === normalised);
-  },
-  saveAdmin: (admin: AdminUser): AdminUser => {
-    const db = getDatabase();
-    const index = db.admins.findIndex(a => a.id === admin.id);
-    if (index >= 0) {
-      db.admins[index] = admin;
-    } else {
-      db.admins.push(admin);
+  /**
+   * Reads the singleton settings document, creating it from the bootstrap
+   * defaults the first time the app runs against an empty database.
+   */
+  getSettings: async (): Promise<SiteSettings> => {
+    await connectToDatabase();
+
+    const existing = await SettingsModel.findOne({ key: 'site' }).lean();
+    if (existing) {
+      // Merge over the defaults so a document written before a field was added
+      // still returns a complete object.
+      return { ...INITIAL_SETTINGS, ...strip<SiteSettings>(existing) };
     }
-    saveDatabase(db);
-    return admin;
-  },
-  updateAdmin: (id: string, updates: Partial<AdminUser>): AdminUser | null => {
-    const db = getDatabase();
-    const index = db.admins.findIndex(a => a.id === id);
-    if (index === -1) return null;
 
-    db.admins[index] = {
-      ...db.admins[index],
-      ...updates,
-      id: db.admins[index].id,
-      updatedAt: new Date().toISOString(),
-    };
-    saveDatabase(db);
-    return db.admins[index];
+    const created = await SettingsModel.create({ key: 'site', ...INITIAL_SETTINGS });
+    return { ...INITIAL_SETTINGS, ...strip<SiteSettings>(created.toObject()) };
   },
 
-  // Services
-  getServices: (activeOnly = false): ServiceItem[] => {
-    const services = getDatabase().services;
-    const sorted = [...services].sort((a, b) => a.order - b.order);
-    return activeOnly ? sorted.filter(s => s.active) : sorted;
+  updateSettings: async (updates: Partial<SiteSettings>): Promise<SiteSettings> => {
+    await connectToDatabase();
+
+    // `key` is ours to control; never let a request body reassign it.
+    const { ...safeUpdates } = updates as Partial<SiteSettings> & { key?: unknown };
+    delete (safeUpdates as { key?: unknown }).key;
+
+    const updated = await SettingsModel.findOneAndUpdate(
+      { key: 'site' },
+      { $set: safeUpdates },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
+
+    return { ...INITIAL_SETTINGS, ...strip<SiteSettings>(updated) };
   },
-  getServiceBySlug: (slug: string): ServiceItem | undefined => {
-    return getDatabase().services.find(s => s.slug === slug);
+
+  /* --------------------------------------------------------- Admin accounts */
+
+  getAdmins: async (): Promise<AdminUser[]> => {
+    await connectToDatabase();
+    return stripAll<AdminUser>(await AdminModel.find().lean());
   },
-  getServiceById: (id: string): ServiceItem | undefined => {
-    return getDatabase().services.find(s => s.id === id);
+
+  getAdminById: async (id: string): Promise<AdminUser | undefined> => {
+    await connectToDatabase();
+    return strip<AdminUser>(await AdminModel.findOne({ id }).lean());
   },
-  saveService: (service: ServiceItem): ServiceItem => {
-    const db = getDatabase();
-    const index = db.services.findIndex(s => s.id === service.id);
-    if (index >= 0) {
-      db.services[index] = service;
-    } else {
-      db.services.push(service);
+
+  getAdminByEmail: async (email: string): Promise<AdminUser | undefined> => {
+    await connectToDatabase();
+    return strip<AdminUser>(await AdminModel.findOne({ email: email.trim().toLowerCase() }).lean());
+  },
+
+  saveAdmin: async (admin: AdminUser): Promise<AdminUser> => {
+    await connectToDatabase();
+    const saved = await AdminModel.findOneAndUpdate(
+      { id: admin.id },
+      { $set: admin },
+      { new: true, upsert: true }
+    ).lean();
+    return strip<AdminUser>(saved)!;
+  },
+
+  updateAdmin: async (id: string, updates: Partial<AdminUser>): Promise<AdminUser | null> => {
+    await connectToDatabase();
+    const updated = await AdminModel.findOneAndUpdate(
+      { id },
+      { $set: { ...updates, id, updatedAt: nowIso() } },
+      { new: true }
+    ).lean();
+    return strip<AdminUser>(updated) ?? null;
+  },
+
+  /* -------------------------------------------------------------- Services */
+
+  /**
+   * Returns the catalogue in display order, seeding the bootstrap services the
+   * first time the app runs against an empty database.
+   */
+  getServices: async (activeOnly = false): Promise<ServiceItem[]> => {
+    await connectToDatabase();
+
+    const count = await ServiceModel.estimatedDocumentCount();
+    if (count === 0) {
+      await ServiceModel.insertMany(INITIAL_SERVICES, { ordered: false }).catch(err => {
+        // A parallel request may have seeded first; duplicates are expected.
+        console.warn('Service bootstrap skipped:', err?.message);
+      });
     }
-    saveDatabase(db);
-    return service;
+
+    const filter = activeOnly ? { active: true } : {};
+    return stripAll<ServiceItem>(await ServiceModel.find(filter).sort({ order: 1 }).lean());
   },
-  deleteService: (id: string): boolean => {
-    const db = getDatabase();
-    const initialLen = db.services.length;
-    db.services = db.services.filter(s => s.id !== id);
-    if (db.services.length !== initialLen) {
-      saveDatabase(db);
-      return true;
+
+  getServiceBySlug: async (slug: string): Promise<ServiceItem | undefined> => {
+    await connectToDatabase();
+    return strip<ServiceItem>(await ServiceModel.findOne({ slug }).lean());
+  },
+
+  getServiceById: async (id: string): Promise<ServiceItem | undefined> => {
+    await connectToDatabase();
+    return strip<ServiceItem>(await ServiceModel.findOne({ id }).lean());
+  },
+
+  saveService: async (service: ServiceItem): Promise<ServiceItem> => {
+    await connectToDatabase();
+    const saved = await ServiceModel.findOneAndUpdate(
+      { id: service.id },
+      { $set: service },
+      { new: true, upsert: true }
+    ).lean();
+    return strip<ServiceItem>(saved)!;
+  },
+
+  deleteService: async (id: string): Promise<boolean> => {
+    await connectToDatabase();
+    const result = await ServiceModel.deleteOne({ id });
+    return result.deletedCount > 0;
+  },
+
+  /* -------------------------------------------------------------- Bookings */
+
+  getBookings: async (): Promise<Booking[]> => {
+    await connectToDatabase();
+    return stripAll<Booking>(await BookingModel.find().sort({ createdAt: -1 }).lean());
+  },
+
+  getBookingById: async (id: string): Promise<Booking | undefined> => {
+    await connectToDatabase();
+    return strip<Booking>(await BookingModel.findOne({ id }).lean());
+  },
+
+  createBooking: async (
+    data: Omit<Booking, 'id' | 'referenceNumber' | 'createdAt' | 'updatedAt' | 'status'> & {
+      status?: Booking['status'];
     }
-    return false;
-  },
+  ): Promise<Booking> => {
+    await connectToDatabase();
 
-  // Bookings
-  getBookings: (): Booking[] => {
-    const bookings = getDatabase().bookings;
-    return [...bookings].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-  },
-  getBookingById: (id: string): Booking | undefined => {
-    return getDatabase().bookings.find(b => b.id === id);
-  },
-  createBooking: (data: Omit<Booking, 'id' | 'referenceNumber' | 'createdAt' | 'updatedAt' | 'status'> & { status?: Booking['status'] }): Booking => {
-    const db = getDatabase();
-    const id = `bkg-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000);
-    const referenceNumber = `QP-${new Date().getFullYear()}-${randomSuffix}`;
-    const now = new Date().toISOString();
-
+    const now = nowIso();
     const newBooking: Booking = {
       ...data,
-      id,
-      referenceNumber,
+      id: randomId('bkg'),
+      referenceNumber: `QP-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
       status: data.status || 'pending',
       createdAt: now,
       updatedAt: now,
     };
 
-    db.bookings.unshift(newBooking);
-    saveDatabase(db);
-    return newBooking;
-  },
-  updateBooking: (id: string, updates: Partial<Booking>): Booking | null => {
-    const db = getDatabase();
-    const index = db.bookings.findIndex(b => b.id === id);
-    if (index === -1) return null;
-
-    db.bookings[index] = {
-      ...db.bookings[index],
-      ...updates,
-      updatedAt: new Date().toISOString(),
-    };
-    saveDatabase(db);
-    return db.bookings[index];
-  },
-  deleteBooking: (id: string): boolean => {
-    const db = getDatabase();
-    const initialLen = db.bookings.length;
-    db.bookings = db.bookings.filter(b => b.id !== id);
-    if (db.bookings.length !== initialLen) {
-      saveDatabase(db);
-      return true;
-    }
-    return false;
+    const created = await BookingModel.create(newBooking);
+    return strip<Booking>(created.toObject())!;
   },
 
-  // Inquiries
-  getInquiries: (): ContactSubmission[] => {
-    const inquiries = getDatabase().inquiries;
-    return [...inquiries].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  updateBooking: async (id: string, updates: Partial<Booking>): Promise<Booking | null> => {
+    await connectToDatabase();
+    const updated = await BookingModel.findOneAndUpdate(
+      { id },
+      { $set: { ...updates, id, updatedAt: nowIso() } },
+      { new: true }
+    ).lean();
+    return strip<Booking>(updated) ?? null;
   },
-  createInquiry: (data: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>): ContactSubmission => {
-    const db = getDatabase();
-    const id = `inq-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`;
+
+  deleteBooking: async (id: string): Promise<boolean> => {
+    await connectToDatabase();
+    const result = await BookingModel.deleteOne({ id });
+    return result.deletedCount > 0;
+  },
+
+  /* ------------------------------------------------------------- Inquiries */
+
+  getInquiries: async (): Promise<ContactSubmission[]> => {
+    await connectToDatabase();
+    return stripAll<ContactSubmission>(await InquiryModel.find().sort({ createdAt: -1 }).lean());
+  },
+
+  createInquiry: async (
+    data: Omit<ContactSubmission, 'id' | 'createdAt' | 'status'>
+  ): Promise<ContactSubmission> => {
+    await connectToDatabase();
+
     const newInquiry: ContactSubmission = {
       ...data,
-      id,
+      id: randomId('inq'),
       status: 'new',
-      createdAt: new Date().toISOString(),
+      createdAt: nowIso(),
     };
-    db.inquiries.unshift(newInquiry);
-    saveDatabase(db);
-    return newInquiry;
-  },
-  updateInquiry: (id: string, updates: Partial<ContactSubmission>): ContactSubmission | null => {
-    const db = getDatabase();
-    const index = db.inquiries.findIndex(i => i.id === id);
-    if (index === -1) return null;
 
-    db.inquiries[index] = {
-      ...db.inquiries[index],
-      ...updates,
-    };
-    saveDatabase(db);
-    return db.inquiries[index];
+    const created = await InquiryModel.create(newInquiry);
+    return strip<ContactSubmission>(created.toObject())!;
   },
-  deleteInquiry: (id: string): boolean => {
-    const db = getDatabase();
-    const initialLen = db.inquiries.length;
-    db.inquiries = db.inquiries.filter(i => i.id !== id);
-    if (db.inquiries.length !== initialLen) {
-      saveDatabase(db);
-      return true;
-    }
-    return false;
-  }
+
+  updateInquiry: async (
+    id: string,
+    updates: Partial<ContactSubmission>
+  ): Promise<ContactSubmission | null> => {
+    await connectToDatabase();
+    const updated = await InquiryModel.findOneAndUpdate(
+      { id },
+      { $set: { ...updates, id } },
+      { new: true }
+    ).lean();
+    return strip<ContactSubmission>(updated) ?? null;
+  },
+
+  deleteInquiry: async (id: string): Promise<boolean> => {
+    await connectToDatabase();
+    const result = await InquiryModel.deleteOne({ id });
+    return result.deletedCount > 0;
+  },
 };

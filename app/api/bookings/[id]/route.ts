@@ -13,7 +13,7 @@ export async function GET(
   }
 
   const { id } = await params;
-  const booking = storage.getBookingById(id);
+  const booking = await storage.getBookingById(id);
 
   if (!booking) {
     return NextResponse.json({ success: false, error: 'Booking not found.' }, { status: 404 });
@@ -36,7 +36,7 @@ export async function PATCH(
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const updated = storage.updateBooking(id, body);
+    const updated = await storage.updateBooking(id, body);
 
     if (!updated) {
       return NextResponse.json({ success: false, error: 'Booking not found.' }, { status: 404 });
@@ -59,7 +59,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const deleted = storage.deleteBooking(id);
+  const deleted = await storage.deleteBooking(id);
 
   if (!deleted) {
     return NextResponse.json({ success: false, error: 'Booking not found.' }, { status: 404 });

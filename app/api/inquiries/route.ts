@@ -10,7 +10,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ success: false, error: 'Unauthorized.' }, { status: 401 });
   }
 
-  const inquiries = storage.getInquiries();
+  const inquiries = await storage.getInquiries();
   return NextResponse.json({
     success: true,
     data: inquiries,
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Please describe how we can assist your heating or cooling system.' }, { status: 400 });
     }
 
-    const newInquiry = storage.createInquiry({
+    const newInquiry = await storage.createInquiry({
       name: name.trim(),
       email: (email || '').trim(),
       phone: (phone || '').trim(),

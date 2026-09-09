@@ -8,6 +8,6 @@ import { toSiteContact } from '@/lib/site';
  * number and email always match the dashboard, with no client round trip.
  * Client-only pages can still render <Footer /> directly.
  */
-export function SiteFooter() {
-  return <Footer contact={toSiteContact(storage.getSettings())} />;
+export async function SiteFooter() {
+  return <Footer contact={toSiteContact(await storage.getSettings())} />;
 }

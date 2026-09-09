@@ -25,7 +25,7 @@ export async function generateMetadata(
   { params }: { params: Promise<{ slug: string }> }
 ): Promise<Metadata> {
   const { slug } = await params;
-  const service = storage.getServiceBySlug(slug);
+  const service = await storage.getServiceBySlug(slug);
 
   if (!service) {
     return buildMetadata({ title: 'Service Details', noIndex: true });
@@ -52,7 +52,7 @@ export default async function ServiceDetailPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params;
-  const service = storage.getServiceBySlug(slug);
+  const service = await storage.getServiceBySlug(slug);
 
   if (!service) {
     notFound();

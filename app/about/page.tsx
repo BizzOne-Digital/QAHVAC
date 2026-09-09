@@ -70,8 +70,8 @@ const BRANDS = [
   'Goodman', 'Keeprite', 'Napoleon', 'York', 'Bosch', 'Fujitsu',
 ];
 
-export default function AboutPage() {
-  const settings = storage.getSettings();
+export default async function AboutPage() {
+  const settings = await storage.getSettings();
   const art = HERO_ART.about;
 
   return (

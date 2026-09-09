@@ -43,10 +43,10 @@ export async function verifyAdminAuth(req?: NextRequest): Promise<boolean> {
   // A seeded admin must still exist; the bootstrap identity is only valid while
   // no admin has been seeded.
   if (session.sub === ENV_ADMIN_ID) {
-    return storage.getAdmins().length === 0;
+    return (await storage.getAdmins()).length === 0;
   }
 
-  return Boolean(storage.getAdminById(session.sub));
+  return Boolean(await storage.getAdminById(session.sub));
 }
 
 export async function getCurrentAdmin(req?: NextRequest): Promise<PublicAdminUser | null> {
@@ -54,7 +54,7 @@ export async function getCurrentAdmin(req?: NextRequest): Promise<PublicAdminUse
   if (!session) return null;
 
   if (session.sub === ENV_ADMIN_ID) {
-    if (storage.getAdmins().length > 0) return null;
+    if ((await storage.getAdmins()).length > 0) return null;
     return {
       id: ENV_ADMIN_ID,
       name: APP_CONFIG.contactPerson,
@@ -65,7 +65,7 @@ export async function getCurrentAdmin(req?: NextRequest): Promise<PublicAdminUse
     };
   }
 
-  const admin = storage.getAdminById(session.sub);
+  const admin = await storage.getAdminById(session.sub);
   return admin ? toPublicAdmin(admin) : null;
 }
 
@@ -78,8 +78,11 @@ export type AuthResult =
  * been seeded yet, the ADMIN_PASSWORD environment value is accepted so the
  * portal is never locked out on a fresh install.
  */
-export function authenticateAdmin(email: string | undefined, password: string): AuthResult {
-  const admins = storage.getAdmins();
+export async function authenticateAdmin(
+  email: string | undefined,
+  password: string
+): Promise<AuthResult> {
+  const admins = await storage.getAdmins();
 
   if (admins.length === 0) {
     if (password.trim() === APP_CONFIG.defaultAdminPassword.trim()) {
@@ -101,13 +104,21 @@ export function authenticateAdmin(email: string | undefined, password: string): 
   const normalisedEmail = email?.trim().toLowerCase();
   let candidates: AdminUser[] = admins;
   if (normalisedEmail) {
-    const match = storage.getAdminByEmail(normalisedEmail);
+    const match = await storage.getAdminByEmail(normalisedEmail);
     candidates = match ? [match] : [];
   }
 
   for (const candidate of candidates) {
     if (verifyPassword(password, candidate.passwordHash)) {
-      storage.updateAdmin(candidate.id, { lastLoginAt: new Date().toISOString() });
+      // Stamping the sign-in time is a write that can fail for reasons which
+      // have nothing to do with the credentials — a database blip, a dropped
+      // connection. It is bookkeeping: never fail a valid login over it.
+      try {
+        await storage.updateAdmin(candidate.id, { lastLoginAt: new Date().toISOString() });
+      } catch (err) {
+        console.warn(`Could not record lastLoginAt for ${candidate.id}:`, err);
+      }
+
       return { success: true, admin: toPublicAdmin(candidate) };
     }
   }

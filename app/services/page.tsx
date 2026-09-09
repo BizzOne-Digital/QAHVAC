@@ -25,8 +25,8 @@ export const metadata = buildMetadata({
   path: '/services',
 });
 
-export default function ServicesPage() {
-  const allServices = storage.getServices(true);
+export default async function ServicesPage() {
+  const allServices = await storage.getServices(true);
   const art = HERO_ART.services;
 
   return (

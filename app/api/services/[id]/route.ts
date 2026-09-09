@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const service = storage.getServiceById(id) || storage.getServiceBySlug(id);
+  const service = await storage.getServiceById(id) || await storage.getServiceBySlug(id);
 
   if (!service) {
     return NextResponse.json({ success: false, error: 'Service not found.' }, { status: 404 });
@@ -27,7 +27,7 @@ export async function PATCH(
   }
 
   const { id } = await params;
-  const existing = storage.getServiceById(id);
+  const existing = await storage.getServiceById(id);
 
   if (!existing) {
     return NextResponse.json({ success: false, error: 'Service not found.' }, { status: 404 });
@@ -37,7 +37,7 @@ export async function PATCH(
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const updated = storage.saveService({
+    const updated = await storage.saveService({
       ...existing,
       ...body,
       id: existing.id, // Immutable ID
@@ -60,7 +60,7 @@ export async function DELETE(
   }
 
   const { id } = await params;
-  const deleted = storage.deleteService(id);
+  const deleted = await storage.deleteService(id);
 
   if (!deleted) {
     return NextResponse.json({ success: false, error: 'Service not found.' }, { status: 404 });

@@ -9,9 +9,9 @@ import { storage } from '@/lib/storage';
 export const dynamic = 'force-dynamic';
 
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const siteUrl = getSiteUrl();
-  const services = storage.getServices(true);
+  const services = await storage.getServices(true);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     {

@@ -10,7 +10,8 @@
     "clean": "next clean",
     "seed:admin": "node scripts/seed-admin.mjs",
     "test:api": "node scripts/test-api.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "migrate:mongo": "node scripts/migrate-to-mongo.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

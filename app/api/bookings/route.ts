@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
-import { BookingUrgency, PropertyType } from '@/types';
+import { BookingUrgency, PropertyType, ServiceItem } from '@/types';
 
 export async function GET(req: NextRequest) {
   const isAuthed = await verifyAdminAuth(req);
@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const statusFilter = searchParams.get('status');
   const search = searchParams.get('search')?.toLowerCase();
 
-  let bookings = storage.getBookings();
+  let bookings = await storage.getBookings();
 
   if (statusFilter && statusFilter !== 'all') {
     bookings = bookings.filter(b => b.status === statusFilter);
@@ -78,9 +78,11 @@ export async function POST(req: NextRequest) {
     // Resolve against the catalogue so the stored booking always points at a
     // real service rather than a free-text label.
     const service =
-      (serviceId && (storage.getServiceById(serviceId) || storage.getServiceBySlug(serviceId))) ||
+      (serviceId && (await storage.getServiceById(serviceId) || await storage.getServiceBySlug(serviceId))) ||
       (typeof serviceName === 'string'
-        ? storage.getServices().find(s => s.title.toLowerCase() === serviceName.trim().toLowerCase())
+        ? (await storage.getServices()).find(
+            (s: ServiceItem) => s.title.toLowerCase() === serviceName.trim().toLowerCase()
+          )
         : undefined);
 
     if (serviceId && !service) {
@@ -99,7 +101,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Please provide the street address and city for service.' }, { status: 400 });
     }
 
-    const newBooking = storage.createBooking({
+    const newBooking = await storage.createBooking({
       customerName: customerName.trim(),
       email: (email || '').trim(),
       phone: phone.trim(),
