@@ -1,8 +1,11 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import { Container } from '@/components/ui/Container';
-import { APP_CONFIG } from '@/lib/config';
+import { SiteContact } from '@/lib/site';
+import { useSiteContact } from './useSiteContact';
 
 const SERVICE_LINKS = [
   { label: 'Furnaces & heating', href: '/services/furnace-heating-repair-installation' },
@@ -21,8 +24,14 @@ const SITE_LINKS = [
   { label: 'Contact', href: '/contact' },
 ];
 
-export function Footer() {
+interface FooterProps {
+  /** Supplied by server pages so the footer renders live settings without a round trip. */
+  contact?: SiteContact;
+}
+
+export function Footer({ contact: contactProp }: FooterProps = {}) {
   const currentYear = new Date().getFullYear();
+  const contact = useSiteContact(contactProp);
 
   return (
     <footer id="site-footer" className="bg-obsidian text-white">
@@ -44,16 +53,16 @@ export function Footer() {
             </p>
             <div className="mt-8 flex flex-wrap items-baseline gap-x-8 gap-y-3">
               <a
-                href={`tel:${APP_CONFIG.phone}`}
+                href={`tel:${contact.phone}`}
                 className="type-h3 text-white hover:text-white/70 transition-colors"
               >
-                {APP_CONFIG.phoneDisplay}
+                {contact.phoneDisplay}
               </a>
               <a
-                href={`mailto:${APP_CONFIG.email}`}
+                href={`mailto:${contact.email}`}
                 className="type-small text-white/60 hover:text-white transition-colors"
               >
-                {APP_CONFIG.email}
+                {contact.email}
               </a>
             </div>
           </div>

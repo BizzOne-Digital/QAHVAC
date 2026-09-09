@@ -25,8 +25,22 @@
       "familiesServed": "1,400+",
       "responseRate": "< 60 Min",
       "satisfactionRate": "100%"
-    }
+    },
+    "phoneDisplay": "(226) 926-3032",
+    "logoUrl": ""
   },
+  "admins": [
+    {
+      "id": "adm-1788960895380-loc2cx",
+      "name": "Administrator",
+      "email": "admin@qphvac.local",
+      "role": "admin",
+      "passwordHash": "scrypt$16384$2d8a91091e160e757625711ec7e1ec36$cceaf0c02beff3f6fd016750334511d506c7ca36bebd09c3a5769e0a00bbf5ae74a3ee26db31e45c36b31ab349b7662047e2d88deda656259cb16c47b0648a95",
+      "createdAt": "2026-09-09T13:34:55.379Z",
+      "updatedAt": "2026-09-09T14:18:25.043Z",
+      "lastLoginAt": "2026-09-09T14:18:12.418Z"
+    }
+  ],
   "services": [
     {
       "id": "srv-furnace",
@@ -45,7 +59,7 @@
       "priceEstimate": "Diagnostic from $99 | Replacements from $2,800",
       "durationEstimate": "Diagnostic: 1 hour | Install: 1 day",
       "emergencyAvailable": true,
-      "image": "https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop",
+      "image": "/api/uploads/products/1788970100027-479db389.jpg",
       "active": true,
       "order": 1
     },
@@ -200,11 +214,11 @@
       },
       "equipmentAge": "7 years old",
       "issueDescription": "Quarterly rooftop unit filter change and belt inspection for commercial kitchen / front cafe seating area.",
-      "status": "pending",
+      "status": "confirmed",
       "technicianNotes": "Pending client confirmation for ladder access key.",
       "assignedTechnician": "Father & Son Crew",
       "createdAt": "2026-09-08T09:40:00.000Z",
-      "updatedAt": "2026-09-08T09:40:00.000Z"
+      "updatedAt": "2026-09-09T16:06:24.975Z"
     },
     {
       "id": "bkg-103",
@@ -225,11 +239,11 @@
       },
       "equipmentAge": "15+ years old (looking to replace old oil tank/furnace)",
       "issueDescription": "Interested in heat pump conversion quote to eliminate oil heating and qualify for federal/provincial green home energy rebates.",
-      "status": "pending",
+      "status": "confirmed",
       "technicianNotes": "Prepare load calculation sheet (Manual J) for quotation.",
       "assignedTechnician": "Jayson",
       "createdAt": "2026-09-08T14:10:00.000Z",
-      "updatedAt": "2026-09-08T14:10:00.000Z"
+      "updatedAt": "2026-09-09T16:06:35.991Z"
     }
   ],
   "inquiries": [
@@ -256,6 +270,5 @@
       "adminNotes": "Spoke with Robert on phone. Sent draft maintenance agreement.",
       "createdAt": "2026-09-06T15:00:00.000Z"
     }
-  ],
-  "uploads": []
+  ]
 }

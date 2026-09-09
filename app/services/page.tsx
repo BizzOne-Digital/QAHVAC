@@ -1,6 +1,6 @@
 import React from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { ServicesCatalog } from '@/components/services/ServicesCatalog';
 import { PageHero } from '@/components/ui/PageHero';
 import { Section } from '@/components/ui/Section';
@@ -11,6 +11,13 @@ import { storage } from '@/lib/storage';
 import { buildMetadata } from '@/lib/seo';
 import { HERO_ART } from '@/lib/images';
 import { APP_CONFIG } from '@/lib/config';
+
+/**
+ * Rendered per request: the page reads live content from the data store, so it
+ * must reflect edits made in the admin dashboard without a rebuild.
+ */
+export const dynamic = 'force-dynamic';
+
 
 export const metadata = buildMetadata({
   title: 'Heating, Cooling & Heat Pump Services | QP HVAC',
@@ -24,7 +31,7 @@ export default function ServicesPage() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
-      <Navbar />
+      <SiteHeader />
 
       <main className="flex-1">
         <PageHero
@@ -81,7 +88,7 @@ export default function ServicesPage() {
         </Section>
       </main>
 
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

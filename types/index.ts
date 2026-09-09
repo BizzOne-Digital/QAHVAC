@@ -105,6 +105,10 @@ export interface SiteSettings {
   logoUrl?: string;
 }
 
+/**
+ * A stored image as exposed by the API. The binary itself lives only in the
+ * MongoDB `StoredUpload` collection; content documents keep just `url`.
+ */
 export interface StoredUpload {
   id: string;
   folder: string;
@@ -113,7 +117,22 @@ export interface StoredUpload {
   mimeType: string;
   size: number;
   url: string;
-  publicUrl?: string;
-  dataBase64?: string;
   createdAt: string;
 }
+
+export type AdminRole = 'admin';
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+  /** scrypt digest in the form `scrypt$<N>$<saltHex>$<hashHex>`. Never sent to the client. */
+  passwordHash: string;
+  createdAt: string;
+  updatedAt: string;
+  lastLoginAt?: string;
+}
+
+/** The shape returned by the API — never carries the password digest. */
+export type PublicAdminUser = Omit<AdminUser, 'passwordHash'>;

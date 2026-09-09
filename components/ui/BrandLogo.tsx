@@ -1,10 +1,14 @@
 import React from 'react';
 import Link from 'next/link';
+import { SafeImage } from './SafeImage';
 
 interface BrandLogoProps {
   className?: string;
   variant?: 'light' | 'dark';
   showSubtitle?: boolean;
+  /** Uploaded logo from site settings; falls back to the drawn mark. */
+  logoUrl?: string;
+  businessName?: string;
 }
 
 /**
@@ -12,8 +16,29 @@ interface BrandLogoProps {
  * Monochrome, so the mark inherits the surface it sits on rather than
  * introducing another colour to the page.
  */
-export function BrandLogo({ className = '', variant = 'dark', showSubtitle = true }: BrandLogoProps) {
+export function BrandLogo({
+  className = '',
+  variant = 'dark',
+  showSubtitle = true,
+  logoUrl,
+  businessName = 'QP HVAC',
+}: BrandLogoProps) {
   const isLight = variant === 'light';
+
+  if (logoUrl) {
+    return (
+      <Link
+        href="/"
+        id="qp-hvac-brand-logo"
+        aria-label={`${businessName} — home`}
+        className={`inline-flex items-center select-none ${className}`}
+      >
+        <span className="relative block h-9 w-[10.5rem]">
+          <SafeImage src={logoUrl} alt={businessName} fill sizes="168px" className="object-contain object-left" />
+        </span>
+      </Link>
+    );
+  }
 
   return (
     <Link

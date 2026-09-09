@@ -3,10 +3,12 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
-import { APP_CONFIG } from '@/lib/config';
+import { toSiteContact } from '@/lib/site';
 
 interface EmergencyBannerProps {
   headline?: string;
+  message?: string;
+  /** Raw dialable number; the display form is derived from it. */
   phone?: string;
 }
 
@@ -16,9 +18,11 @@ interface EmergencyBannerProps {
  */
 export function EmergencyBanner({
   headline = '24/7 emergency heating and cooling dispatch',
-  phone = APP_CONFIG.phoneDisplay,
+  message,
+  phone,
 }: EmergencyBannerProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const contact = toSiteContact(phone ? { phone } : null);
 
   if (!isVisible) return null;
 
@@ -28,9 +32,11 @@ export function EmergencyBanner({
         <div className="flex items-center justify-between gap-6 py-2.5">
           <p className="type-meta text-white/85 truncate">
             <span className="type-label mr-3 text-white">Emergency</span>
-            <span className="hidden sm:inline">{headline} — no heat or no cooling? Speak to Jayson directly: </span>
-            <a href={`tel:${APP_CONFIG.phone}`} id="emergency-banner-call-btn" className="font-semibold text-white underline underline-offset-[3px] decoration-white/40 hover:decoration-white">
-              {phone}
+            <span className="hidden sm:inline">
+              {message || `${headline} — no heat or no cooling? Speak to us directly:`}{' '}
+            </span>
+            <a href={`tel:${contact.phone}`} id="emergency-banner-call-btn" className="font-semibold text-white underline underline-offset-[3px] decoration-white/40 hover:decoration-white">
+              {contact.phoneDisplay}
             </a>
           </p>
 

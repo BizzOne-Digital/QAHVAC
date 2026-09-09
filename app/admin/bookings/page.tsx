@@ -1,26 +1,43 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useToast } from '@/components/admin/Toast';
 import {
-  Calendar,
-  Search,
-  Filter,
-  PhoneCall,
-  Mail,
-  MapPin,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  Flame,
-  Trash2,
-  Eye,
-  X,
-  UserCheck,
-  Save,
-  Wrench,
-  AlertTriangle
-} from 'lucide-react';
-import { Booking } from '@/types';
+  AdminPageHeading,
+  EmptyState,
+  Field,
+  LoadingState,
+  Panel,
+  StatusPill,
+} from '@/components/admin/ui';
+import { Button } from '@/components/ui/Button';
+import { Booking, BookingStatus, BookingUrgency } from '@/types';
+
+const STATUSES: { value: BookingStatus; label: string }[] = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'confirmed', label: 'Confirmed' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
+
+const URGENCIES: { value: BookingUrgency; label: string }[] = [
+  { value: 'emergency_today', label: 'Emergency / today' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'flexible', label: 'Flexible' },
+];
+
+const STATUS_TONE: Record<BookingStatus, 'active' | 'neutral' | 'muted'> = {
+  pending: 'neutral',
+  confirmed: 'active',
+  in_progress: 'active',
+  completed: 'muted',
+  cancelled: 'muted',
+};
+
+function statusLabel(status: BookingStatus): string {
+  return STATUSES.find(s => s.value === status)?.label ?? status;
+}
 
 export default function AdminBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -29,22 +46,22 @@ export default function AdminBookingsPage() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [urgencyFilter, setUrgencyFilter] = useState('all');
   const [selectedBooking, setSelectedBooking] = useState<Booking | null>(null);
-  const [editStatus, setEditStatus] = useState<Booking['status']>('pending');
+  const [editStatus, setEditStatus] = useState<BookingStatus>('pending');
   const [editTechNotes, setEditTechNotes] = useState('');
   const [editAssignedTech, setEditAssignedTech] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const toast = useToast();
 
   const fetchBookings = async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/bookings');
       const data = await res.json();
-      if (data.success) {
-        setBookings(data.data);
-      }
+      if (!res.ok || !data.success) throw new Error(data.error || 'Could not load appointments.');
+      setBookings(data.data);
     } catch (err) {
-      console.error('Error fetching bookings:', err);
+      toast.error(err instanceof Error ? err.message : 'Could not load appointments.');
     } finally {
       setLoading(false);
     }
@@ -52,13 +69,15 @@ export default function AdminBookingsPage() {
 
   useEffect(() => {
     fetchBookings();
+    // Runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const openDetails = (booking: Booking) => {
     setSelectedBooking(booking);
     setEditStatus(booking.status);
     setEditTechNotes(booking.technicianNotes || '');
-    setEditAssignedTech(booking.assignedTechnician || 'Jayson (Lead Craftsman)');
+    setEditAssignedTech(booking.assignedTechnician || '');
   };
 
   const handleUpdateBooking = async () => {
@@ -75,12 +94,16 @@ export default function AdminBookingsPage() {
         }),
       });
       const data = await res.json();
-      if (data.success) {
-        setBookings(prev => prev.map(b => (b.id === selectedBooking.id ? data.data : b)));
-        setSelectedBooking(data.data);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'The appointment could not be updated.');
       }
+
+      setBookings(prev => prev.map(b => (b.id === selectedBooking.id ? data.data : b)));
+      setSelectedBooking(data.data);
+      toast.success('Appointment updated.');
     } catch (err) {
-      console.error('Error updating booking:', err);
+      toast.error(err instanceof Error ? err.message : 'The appointment could not be updated.');
     } finally {
       setIsSaving(false);
     }
@@ -90,361 +113,292 @@ export default function AdminBookingsPage() {
     try {
       const res = await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
       const data = await res.json();
-      if (data.success) {
-        setBookings(prev => prev.filter(b => b.id !== id));
-        if (selectedBooking?.id === id) setSelectedBooking(null);
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'The appointment could not be removed.');
       }
+
+      setBookings(prev => prev.filter(b => b.id !== id));
+      if (selectedBooking?.id === id) setSelectedBooking(null);
+      toast.success('Appointment removed.');
     } catch (err) {
-      console.error('Error deleting booking:', err);
+      toast.error(err instanceof Error ? err.message : 'The appointment could not be removed.');
     } finally {
       setDeleteConfirmId(null);
     }
   };
 
-  const filteredBookings = bookings.filter((b) => {
-    const matchesSearch =
-      b.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.phone.includes(searchQuery) ||
-      b.referenceNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.serviceName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      b.address.city.toLowerCase().includes(searchQuery.toLowerCase());
+  const filteredBookings = useMemo(() => {
+    const query = searchQuery.toLowerCase();
+    return bookings.filter(b => {
+      const matchesSearch =
+        !query ||
+        b.customerName.toLowerCase().includes(query) ||
+        b.phone.includes(searchQuery) ||
+        b.referenceNumber.toLowerCase().includes(query) ||
+        b.serviceName.toLowerCase().includes(query) ||
+        b.address.city.toLowerCase().includes(query);
 
-    const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
-    const matchesUrgency = urgencyFilter === 'all' || b.urgency === urgencyFilter;
+      const matchesStatus = statusFilter === 'all' || b.status === statusFilter;
+      const matchesUrgency = urgencyFilter === 'all' || b.urgency === urgencyFilter;
 
-    return matchesSearch && matchesStatus && matchesUrgency;
-  });
+      return matchesSearch && matchesStatus && matchesUrgency;
+    });
+  }, [bookings, searchQuery, statusFilter, urgencyFilter]);
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Appointments & Dispatch Manager
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Review service calls, confirm dispatch slots, and manage technician assignments.
-          </p>
-        </div>
+    <>
+      <AdminPageHeading
+        eyebrow="Scheduling"
+        title="Appointments"
+        description="Every request from the website, with the status the customer is waiting on."
+        actions={
+          <Button variant="secondary" size="sm" onClick={fetchBookings} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        }
+      />
 
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-bold text-slate-400">Total Bookings:</span>
-          <span className="px-2.5 py-1 rounded-lg bg-slate-900 border border-slate-800 text-white font-mono font-bold text-xs">
-            {bookings.length}
-          </span>
-        </div>
-      </div>
+      <Panel>
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
+          <Field label="Search" className="md:col-span-6">
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Name, phone, reference, service or city"
+              className="field"
+            />
+          </Field>
 
-      {/* Filter and Search Bar */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col md:flex-row items-center gap-4">
-        {/* Search Input */}
-        <div className="relative w-full md:flex-1">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-          <input
-            type="text"
-            placeholder="Search by customer name, phone, ref#, service, city..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-          />
-        </div>
+          <Field label="Status" className="md:col-span-3">
+            <select
+              value={statusFilter}
+              onChange={e => setStatusFilter(e.target.value)}
+              className="field"
+            >
+              <option value="all">All statuses</option>
+              {STATUSES.map(s => (
+                <option key={s.value} value={s.value}>
+                  {s.label}
+                </option>
+              ))}
+            </select>
+          </Field>
 
-        {/* Status Filter */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <span className="text-xs text-slate-400 font-semibold whitespace-nowrap">Status:</span>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="w-full md:w-auto bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-          >
-            <option value="all">All Statuses</option>
-            <option value="pending">Pending</option>
-            <option value="confirmed">Confirmed</option>
-            <option value="completed">Completed</option>
-            <option value="cancelled">Cancelled</option>
-          </select>
+          <Field label="Urgency" className="md:col-span-3">
+            <select
+              value={urgencyFilter}
+              onChange={e => setUrgencyFilter(e.target.value)}
+              className="field"
+            >
+              <option value="all">All urgencies</option>
+              {URGENCIES.map(u => (
+                <option key={u.value} value={u.value}>
+                  {u.label}
+                </option>
+              ))}
+            </select>
+          </Field>
         </div>
+      </Panel>
 
-        {/* Urgency Filter */}
-        <div className="flex items-center gap-2 w-full md:w-auto">
-          <span className="text-xs text-slate-400 font-semibold whitespace-nowrap">Urgency:</span>
-          <select
-            value={urgencyFilter}
-            onChange={(e) => setUrgencyFilter(e.target.value)}
-            className="w-full md:w-auto bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
-          >
-            <option value="all">All Urgencies</option>
-            <option value="emergency_today">Emergency / Today</option>
-            <option value="within_48_hours">Within 48 Hours</option>
-            <option value="flexible">Flexible / Routine</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Bookings Table / List */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse text-xs">
+      {loading ? (
+        <LoadingState>Loading appointments…</LoadingState>
+      ) : filteredBookings.length === 0 ? (
+        <EmptyState>
+          {bookings.length === 0
+            ? 'No appointments yet. Requests from the website appear here immediately.'
+            : 'No appointments match these filters.'}
+        </EmptyState>
+      ) : (
+        <div className="bg-surface border border-line overflow-x-auto">
+          <table className="w-full text-left border-collapse min-w-[56rem]">
             <thead>
-              <tr className="border-b border-slate-800 bg-slate-950/60 text-slate-400 font-bold uppercase tracking-wider">
-                <th className="py-3.5 px-4">Ref & Customer</th>
-                <th className="py-3.5 px-4">Service Requested</th>
-                <th className="py-3.5 px-4">Date & Window</th>
-                <th className="py-3.5 px-4">Location</th>
-                <th className="py-3.5 px-4">Status / Urgency</th>
-                <th className="py-3.5 px-4 text-right">Actions</th>
+              <tr className="border-b border-line">
+                <th className="type-label text-ink-3 py-4 px-5">Reference</th>
+                <th className="type-label text-ink-3 py-4 px-5">Service</th>
+                <th className="type-label text-ink-3 py-4 px-5">Date</th>
+                <th className="type-label text-ink-3 py-4 px-5">Location</th>
+                <th className="type-label text-ink-3 py-4 px-5">Status</th>
+                <th className="type-label text-ink-3 py-4 px-5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {filteredBookings.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="py-12 text-center text-slate-500">
-                    No appointments match the current filter criteria.
+            <tbody>
+              {filteredBookings.map(b => (
+                <tr key={b.id} className="border-b border-line last:border-b-0 hover:bg-canvas-sunk transition-colors">
+                  <td className="py-4 px-5 align-top">
+                    <div className="type-meta text-ink-3 font-mono">{b.referenceNumber}</div>
+                    <div className="type-h4 text-ink mt-1">{b.customerName}</div>
+                    <div className="type-meta text-ink-3">{b.phone}</div>
+                  </td>
+
+                  <td className="py-4 px-5 align-top">
+                    <div className="type-small text-ink">{b.serviceName}</div>
+                    <div className="type-meta text-ink-3 capitalize">{b.propertyType}</div>
+                  </td>
+
+                  <td className="py-4 px-5 align-top">
+                    <div className="type-small text-ink">{b.preferredDate}</div>
+                    <div className="type-meta text-ink-3">{b.preferredTimeSlot}</div>
+                  </td>
+
+                  <td className="py-4 px-5 align-top">
+                    <div className="type-small text-ink">{b.address.city}</div>
+                    <div className="type-meta text-ink-3">{b.address.street}</div>
+                  </td>
+
+                  <td className="py-4 px-5 align-top">
+                    <div className="flex flex-col items-start gap-2">
+                      <StatusPill tone={STATUS_TONE[b.status]}>{statusLabel(b.status)}</StatusPill>
+                      {b.urgency === 'emergency_today' && (
+                        <StatusPill tone="urgent">Emergency</StatusPill>
+                      )}
+                    </div>
+                  </td>
+
+                  <td className="py-4 px-5 align-top text-right whitespace-nowrap">
+                    <button
+                      type="button"
+                      onClick={() => openDetails(b)}
+                      title="View & Edit Booking"
+                      className="type-label text-ink hover:text-ink-2 transition-colors"
+                    >
+                      Open
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDeleteConfirmId(b.id)}
+                      title="Delete Booking"
+                      className="type-label text-urgent hover:text-urgent-hover transition-colors ml-4"
+                    >
+                      Delete
+                    </button>
                   </td>
                 </tr>
-              ) : (
-                filteredBookings.map((b) => (
-                  <tr key={b.id} className="hover:bg-slate-800/40 transition-colors">
-                    <td className="py-3.5 px-4">
-                      <div className="font-mono text-[11px] font-bold text-blue-400">
-                        {b.referenceNumber}
-                      </div>
-                      <div className="font-bold text-white text-sm">{b.customerName}</div>
-                      <div className="text-slate-400 text-[11px]">{b.phone}</div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <span className="font-semibold text-slate-200 block">{b.serviceName}</span>
-                      <span className="text-[11px] text-slate-400 capitalize">{b.propertyType}</span>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="font-medium text-slate-200 flex items-center gap-1">
-                        <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                        {b.preferredDate}
-                      </div>
-                      <div className="text-[11px] text-slate-400 flex items-center gap-1">
-                        <Clock className="w-3 h-3 text-slate-500" />
-                        {b.preferredTimeSlot}
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="text-slate-300 font-medium">{b.address.city}</div>
-                      <div className="text-[11px] text-slate-400 line-clamp-1">{b.address.street}</div>
-                    </td>
-
-                    <td className="py-3.5 px-4">
-                      <div className="flex flex-col gap-1 items-start">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                          b.status === 'confirmed'
-                            ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                            : b.status === 'pending'
-                            ? 'bg-amber-950 text-amber-400 border border-amber-800'
-                            : b.status === 'completed'
-                            ? 'bg-blue-950 text-blue-400 border border-blue-800'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}>
-                          {b.status}
-                        </span>
-
-                        {b.urgency === 'emergency_today' && (
-                          <span className="px-1.5 py-0.5 rounded bg-red-950 text-red-400 text-[10px] font-bold border border-red-800 flex items-center gap-1">
-                            <Flame className="w-3 h-3 text-red-400" /> Emergency
-                          </span>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => openDetails(b)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200"
-                          title="View & Edit Booking"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </button>
-
-                        <button
-                          onClick={() => setDeleteConfirmId(b.id)}
-                          className="p-1.5 rounded-lg bg-slate-800 hover:bg-red-950 text-slate-400 hover:text-red-400"
-                          title="Delete Booking"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
+              ))}
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Delete Confirmation Modal */}
-      {deleteConfirmId && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-sm w-full space-y-4">
-            <div className="flex items-center gap-3 text-red-400">
-              <AlertTriangle className="w-6 h-6 flex-shrink-0" />
-              <h3 className="font-bold text-white text-base">Delete Appointment?</h3>
-            </div>
-            <p className="text-xs text-slate-300">
-              Are you sure you want to delete this booking record? This action cannot be undone.
-            </p>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <button
-                onClick={() => setDeleteConfirmId(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleDeleteBooking(deleteConfirmId)}
-                className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-xs font-bold text-white"
-              >
-                Confirm Delete
-              </button>
-            </div>
-          </div>
-        </div>
       )}
 
-      {/* Details / Edit Modal */}
+      {/* Detail drawer */}
       {selectedBooking && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto my-auto shadow-2xl">
-            {/* Modal Header */}
-            <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+        <div className="fixed inset-0 z-50 bg-ink/45 flex items-start justify-center p-4 overflow-y-auto">
+          <div className="bg-surface border border-line w-full max-w-2xl my-8">
+            <div className="flex items-baseline justify-between gap-4 px-6 sm:px-8 py-5 border-b border-line">
               <div>
-                <span className="font-mono text-xs font-bold text-blue-400">
-                  {selectedBooking.referenceNumber}
-                </span>
-                <h3 className="text-xl font-bold text-white mt-0.5">
-                  {selectedBooking.customerName}
-                </h3>
-                <p className="text-xs text-slate-400">
-                  Booked on {new Date(selectedBooking.createdAt).toLocaleString()}
-                </p>
+                <span className="type-label text-ink-3">{selectedBooking.referenceNumber}</span>
+                <h2 className="type-h3 text-ink mt-2">{selectedBooking.customerName}</h2>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedBooking(null)}
-                className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white"
+                className="type-label text-ink-3 hover:text-ink transition-colors"
               >
-                <X className="w-5 h-5" />
+                Close
               </button>
             </div>
 
-            {/* Customer & Location Details */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <span className="font-bold text-slate-400 uppercase tracking-wider block">Customer Contact</span>
-                <div className="flex items-center gap-2 text-white font-medium">
-                  <PhoneCall className="w-3.5 h-3.5 text-blue-400" />
-                  <a href={`tel:${selectedBooking.phone}`} className="hover:underline">{selectedBooking.phone}</a>
-                </div>
-                {selectedBooking.email && (
-                  <div className="flex items-center gap-2 text-slate-300">
-                    <Mail className="w-3.5 h-3.5 text-blue-400" />
-                    <span>{selectedBooking.email}</span>
+            <div className="px-6 sm:px-8 py-7 space-y-7">
+              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 border-t border-line">
+                {[
+                  ['Service', selectedBooking.serviceName],
+                  ['Property', selectedBooking.propertyType],
+                  ['Requested date', selectedBooking.preferredDate],
+                  ['Arrival window', selectedBooking.preferredTimeSlot],
+                  ['Phone', selectedBooking.phone],
+                  ['Email', selectedBooking.email || '—'],
+                  [
+                    'Address',
+                    `${selectedBooking.address.street}, ${selectedBooking.address.city} ${selectedBooking.address.postalCode}`,
+                  ],
+                  ['Equipment age', selectedBooking.equipmentAge || '—'],
+                ].map(([label, value]) => (
+                  <div key={label} className="py-3.5 border-b border-line">
+                    <dt className="type-label text-ink-3">{label}</dt>
+                    <dd className="type-small text-ink mt-1.5">{value}</dd>
                   </div>
-                )}
-                <div className="text-slate-400">
-                  Property: <span className="text-white capitalize font-semibold">{selectedBooking.propertyType}</span>
-                </div>
-              </div>
+                ))}
+              </dl>
 
-              <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2">
-                <span className="font-bold text-slate-400 uppercase tracking-wider block">Dispatch Address</span>
-                <div className="flex items-start gap-2 text-white font-medium">
-                  <MapPin className="w-3.5 h-3.5 text-red-400 flex-shrink-0 mt-0.5" />
-                  <span>
-                    {selectedBooking.address.street}
-                    <br />
-                    {selectedBooking.address.city}, {selectedBooking.address.postalCode}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Service & Equipment Description */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs">
-              <span className="font-bold text-slate-400 uppercase tracking-wider block">Service & Issue Details</span>
-              <div className="text-sm font-bold text-white">{selectedBooking.serviceName}</div>
-              <div className="text-slate-300">
-                <strong>Equipment:</strong> {selectedBooking.equipmentBrand || 'Not specified'} • <strong>Age:</strong> {selectedBooking.equipmentAge || 'Not specified'}
-              </div>
-              <div className="text-slate-300 mt-2 bg-slate-900/60 p-3 rounded-lg border border-slate-800/80">
-                <strong>Symptoms / Issue:</strong>
-                <p className="mt-1 text-slate-200">{selectedBooking.issueDescription || 'None described'}</p>
-              </div>
-            </div>
-
-            {/* Technician Dispatch Controls */}
-            <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
-              <h4 className="font-bold text-xs uppercase tracking-wider text-slate-400">Dispatch & Technician Controls</h4>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {selectedBooking.issueDescription && (
                 <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Appointment Status</label>
+                  <span className="type-label text-ink-3">Reported issue</span>
+                  <p className="type-small text-ink-2 mt-2.5">{selectedBooking.issueDescription}</p>
+                </div>
+              )}
+
+              <div className="space-y-5 pt-2">
+                <Field label="Status">
                   <select
                     value={editStatus}
-                    onChange={(e) => setEditStatus(e.target.value as Booking['status'])}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    onChange={e => setEditStatus(e.target.value as BookingStatus)}
+                    className="field"
                   >
-                    <option value="pending">Pending</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
+                    {STATUSES.map(s => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
                   </select>
-                </div>
+                </Field>
 
-                <div>
-                  <label className="block text-xs font-bold text-slate-300 mb-1">Assigned Technician</label>
+                <Field label="Assigned technician">
                   <input
                     type="text"
                     value={editAssignedTech}
-                    onChange={(e) => setEditAssignedTech(e.target.value)}
-                    placeholder="e.g. Jayson (Lead Craftsman)"
-                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-blue-500"
+                    onChange={e => setEditAssignedTech(e.target.value)}
+                    placeholder="Jayson (lead craftsman)"
+                    className="field"
                   />
-                </div>
+                </Field>
+
+                <Field label="Technician notes" hint="Internal only — never shown to the customer.">
+                  <textarea
+                    rows={4}
+                    value={editTechNotes}
+                    onChange={e => setEditTechNotes(e.target.value)}
+                    placeholder="Parts to bring, access notes, quoted work."
+                    className="field"
+                  />
+                </Field>
               </div>
 
-              <div>
-                <label className="block text-xs font-bold text-slate-300 mb-1">Technician Notes & Parts Dispatched</label>
-                <textarea
-                  rows={3}
-                  value={editTechNotes}
-                  onChange={(e) => setEditTechNotes(e.target.value)}
-                  placeholder="e.g. Customer reported flame sensor error. Bringing universal hot surface ignitor and draft inducer..."
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <button
-                  onClick={() => setSelectedBooking(null)}
-                  className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300"
-                >
+              <div className="flex justify-end gap-3 pt-6 border-t border-line">
+                <Button variant="secondary" size="md" onClick={() => setSelectedBooking(null)}>
                   Close
-                </button>
-                <button
-                  onClick={handleUpdateBooking}
-                  disabled={isSaving}
-                  className="inline-flex items-center gap-2 px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow transition-all disabled:opacity-50"
-                >
-                  <Save className="w-3.5 h-3.5" />
-                  <span>{isSaving ? 'Saving...' : 'Save Updates'}</span>
-                </button>
+                </Button>
+                <Button variant="primary" size="md" onClick={handleUpdateBooking} disabled={isSaving}>
+                  {isSaving ? 'Saving…' : 'Save updates'}
+                </Button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+
+      {/* Delete confirmation */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 z-50 bg-ink/45 flex items-center justify-center p-4">
+          <div className="bg-surface border border-line w-full max-w-md p-7">
+            <span className="type-label text-ink-3">Confirm</span>
+            <h2 className="type-h3 text-ink mt-3">Remove this appointment?</h2>
+            <p className="type-small text-ink-2 mt-3">
+              The request is deleted permanently. Call the customer first if it has not been resolved.
+            </p>
+
+            <div className="flex justify-end gap-3 mt-7">
+              <Button variant="secondary" size="md" onClick={() => setDeleteConfirmId(null)}>
+                Cancel
+              </Button>
+              <Button variant="urgent" size="md" onClick={() => handleDeleteBooking(deleteConfirmId)}>
+                Remove
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

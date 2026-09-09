@@ -68,7 +68,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Please provide a valid direct phone number.' }, { status: 400 });
     }
 
-    if (!serviceName || typeof serviceName !== 'string') {
+    if (!serviceId && !serviceName) {
+      return NextResponse.json({ success: false, error: 'Please select a service category.' }, { status: 400 });
+    }
+
+    // Resolve against the catalogue so the stored booking always points at a
+    // real service rather than a free-text label.
+    const service =
+      (serviceId && (storage.getServiceById(serviceId) || storage.getServiceBySlug(serviceId))) ||
+      (typeof serviceName === 'string'
+        ? storage.getServices().find(s => s.title.toLowerCase() === serviceName.trim().toLowerCase())
+        : undefined);
+
+    if (serviceId && !service) {
+      return NextResponse.json({ success: false, error: 'The selected service no longer exists.' }, { status: 400 });
+    }
+
+    if (!service && (!serviceName || typeof serviceName !== 'string')) {
       return NextResponse.json({ success: false, error: 'Please select a service category.' }, { status: 400 });
     }
 
@@ -85,8 +101,8 @@ export async function POST(req: NextRequest) {
       email: (email || '').trim(),
       phone: phone.trim(),
       propertyType: (propertyType as PropertyType) || 'residential',
-      serviceId: serviceId || 'srv-general',
-      serviceName: serviceName.trim(),
+      serviceId: service?.id || 'srv-general',
+      serviceName: service?.title || String(serviceName).trim(),
       preferredDate: preferredDate,
       preferredTimeSlot: preferredTimeSlot || 'Morning (8:00 AM - 12:00 PM)',
       urgency: (urgency as BookingUrgency) || 'standard',

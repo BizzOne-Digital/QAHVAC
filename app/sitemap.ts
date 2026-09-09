@@ -2,6 +2,13 @@ import { MetadataRoute } from 'next';
 import { getSiteUrl } from '@/lib/seo';
 import { storage } from '@/lib/storage';
 
+/**
+ * Rendered per request: the page reads live content from the data store, so it
+ * must reflect edits made in the admin dashboard without a rebuild.
+ */
+export const dynamic = 'force-dynamic';
+
+
 export default function sitemap(): MetadataRoute.Sitemap {
   const siteUrl = getSiteUrl();
   const services = storage.getServices(true);

@@ -7,7 +7,8 @@ import { Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/BrandLogo';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
-import { APP_CONFIG } from '@/lib/config';
+import { SiteContact } from '@/lib/site';
+import { useSiteContact } from './useSiteContact';
 
 const NAV_LINKS = [
   { name: 'Services', href: '/services' },
@@ -15,7 +16,15 @@ const NAV_LINKS = [
   { name: 'Contact', href: '/contact' },
 ];
 
-export function Navbar() {
+interface NavbarProps {
+  /** Supplied by server pages so the header renders live settings without a round trip. */
+  contact?: SiteContact;
+  /** Uploaded logo from site settings, when one has been set. */
+  logoUrl?: string;
+}
+
+export function Navbar({ contact: contactProp, logoUrl }: NavbarProps = {}) {
+  const contact = useSiteContact(contactProp);
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
@@ -52,7 +61,12 @@ export function Navbar() {
     >
       <Container>
         <div className="h-[4.75rem] flex items-center justify-between gap-8">
-          <BrandLogo variant={solid ? 'dark' : 'light'} showSubtitle={false} />
+          <BrandLogo
+            variant={solid ? 'dark' : 'light'}
+            showSubtitle={false}
+            logoUrl={logoUrl}
+            businessName={contact.businessName}
+          />
 
           <nav aria-label="Primary" className="hidden md:flex items-center gap-9">
             {NAV_LINKS.map((link) => {
@@ -87,13 +101,13 @@ export function Navbar() {
 
           <div className="hidden md:flex items-center gap-6">
             <a
-              href={`tel:${APP_CONFIG.phone}`}
+              href={`tel:${contact.phone}`}
               id="nav-direct-call-btn"
               className={`text-sm font-medium transition-colors ${
                 solid ? 'text-ink-2 hover:text-ink' : 'text-white/70 hover:text-white'
               }`}
             >
-              {APP_CONFIG.phoneDisplay}
+              {contact.phoneDisplay}
             </a>
 
             <Button
@@ -149,8 +163,8 @@ export function Navbar() {
               <Button href="/booking" variant="primary" size="lg" fullWidth>
                 Book service appointment
               </Button>
-              <Button href={`tel:${APP_CONFIG.phone}`} variant="secondary" size="lg" fullWidth>
-                Call {APP_CONFIG.phoneDisplay}
+              <Button href={`tel:${contact.phone}`} variant="secondary" size="lg" fullWidth>
+                Call {contact.phoneDisplay}
               </Button>
               <p className="type-meta text-ink-3 pt-4">
                 Mon–Fri 7am–8pm · Sat 8am–6pm · Sun 9am–4pm.{' '}

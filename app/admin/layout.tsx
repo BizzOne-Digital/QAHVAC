@@ -1,31 +1,26 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import {
-  LayoutDashboard,
-  Calendar,
-  MessageSquare,
-  Wrench,
-  Image as ImageIcon,
-  Settings,
-  LogOut,
-  ExternalLink,
-  ShieldCheck,
-  Menu,
-  X,
-  UserCheck,
-  Flame,
-  PhoneCall
-} from 'lucide-react';
 import { BrandLogo } from '@/components/ui/BrandLogo';
+import { ToastProvider } from '@/components/admin/Toast';
+
+const NAV_ITEMS = [
+  { name: 'Overview', href: '/admin' },
+  { name: 'Appointments', href: '/admin/bookings' },
+  { name: 'Inquiries', href: '/admin/inquiries' },
+  { name: 'Services', href: '/admin/services' },
+  { name: 'Media', href: '/admin/media' },
+  { name: 'Settings', href: '/admin/settings' },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [operator, setOperator] = useState<{ name: string; email: string } | null>(null);
 
   const isLoginPage = pathname === '/admin/login';
 
@@ -43,6 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           router.push('/admin/login');
         } else {
           setIsAuthenticated(true);
+          setOperator(data.user ? { name: data.user.name, email: data.user.email } : null);
         }
       } catch {
         router.push('/admin/login');
@@ -55,144 +51,117 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   const handleLogout = async () => {
     try {
       await fetch('/api/auth/logout', { method: 'POST' });
-      router.push('/admin/login');
     } catch (err) {
       console.error('Logout error:', err);
+    } finally {
       router.push('/admin/login');
     }
   };
 
-  // If on login page, render bare without admin sidebar
   if (isLoginPage) {
-    return <div className="min-h-screen bg-slate-950 text-slate-100">{children}</div>;
+    return <div className="min-h-screen bg-canvas text-ink">{children}</div>;
   }
 
-  // Loading state while verifying auth session
   if (isAuthenticated === null) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-slate-400 gap-3">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <span className="text-xs font-semibold">Verifying QP HVAC Admin Session...</span>
+      <div className="min-h-screen bg-canvas flex items-center justify-center">
+        <span className="type-label text-ink-3">Verifying session…</span>
       </div>
     );
   }
 
-  const navItems = [
-    { name: 'Dashboard', href: '/admin', icon: LayoutDashboard },
-    { name: 'Appointments & Dispatch', href: '/admin/bookings', icon: Calendar },
-    { name: 'Customer Inquiries', href: '/admin/inquiries', icon: MessageSquare },
-    { name: 'HVAC Services', href: '/admin/services', icon: Wrench },
-    { name: 'Media Library', href: '/admin/media', icon: ImageIcon },
-    { name: 'Site & Business Settings', href: '/admin/settings', icon: Settings },
-  ];
+  const navLink = (href: string, name: string, onNavigate?: () => void) => {
+    const isActive = href === '/admin' ? pathname === '/admin' : pathname.startsWith(href);
+    return (
+      <Link
+        key={href}
+        href={href}
+        onClick={onNavigate}
+        id={`admin-nav-${name.toLowerCase()}`}
+        className={`block py-2.5 border-b border-line type-small transition-colors ${
+          isActive ? 'text-ink font-semibold' : 'text-ink-2 hover:text-ink'
+        }`}
+      >
+        {name}
+      </Link>
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col md:flex-row">
-      {/* Sidebar for Desktop */}
-      <aside className="hidden md:flex flex-col w-64 bg-slate-900 border-r border-slate-800 p-5 justify-between flex-shrink-0">
-        <div className="space-y-6">
-          <div className="pb-4 border-b border-slate-800">
-            <BrandLogo variant="light" />
-            <div className="mt-2.5 flex items-center gap-1.5 text-[11px] font-semibold text-slate-400 bg-slate-950 px-2.5 py-1 rounded-md border border-slate-800">
-              <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-              <span>Operator: Jayson (Master Tech)</span>
+    <ToastProvider>
+      <div className="min-h-screen bg-canvas text-ink flex flex-col md:flex-row">
+        {/* Desktop rail */}
+        {/* Pinned to the viewport: the rail stays put while the page scrolls,
+            and scrolls internally only if the nav outgrows the screen. */}
+        <aside className="hidden md:flex flex-col justify-between w-64 flex-shrink-0 sticky top-0 h-screen overflow-y-auto bg-canvas-sunk border-r border-line px-6 py-8">
+          <div>
+            <BrandLogo />
+            <p className="type-label text-ink-3 mt-6">Dispatch portal</p>
+
+            <nav className="mt-4 border-t border-line">
+              {NAV_ITEMS.map(item => navLink(item.href, item.name))}
+            </nav>
+          </div>
+
+          <div className="pt-8">
+            <p className="type-label text-ink-3">Signed in</p>
+            <p className="type-small text-ink mt-2" title={operator?.email}>
+              {operator?.name || 'Administrator'}
+            </p>
+            <p className="type-meta text-ink-3 truncate">{operator?.email}</p>
+
+            <div className="mt-5 pt-5 border-t border-line flex flex-col gap-2.5">
+              <Link
+                href="/"
+                target="_blank"
+                className="type-small text-ink-2 hover:text-ink transition-colors"
+              >
+                View live site
+              </Link>
+              <button
+                onClick={handleLogout}
+                id="admin-logout-btn"
+                className="type-small text-urgent hover:text-urgent-hover transition-colors text-left"
+              >
+                Sign out
+              </button>
             </div>
           </div>
+        </aside>
 
-          {/* Navigation Links */}
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  id={`admin-nav-${item.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all ${
-                    isActive
-                      ? 'bg-blue-600 text-white shadow-md shadow-blue-600/20'
-                      : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Sidebar Footer Actions */}
-        <div className="pt-4 border-t border-slate-800 space-y-2 text-xs">
-          <Link
-            href="/"
-            target="_blank"
-            className="flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 transition-colors font-semibold"
-          >
-            <span className="flex items-center gap-2">
-              <ExternalLink className="w-3.5 h-3.5 text-blue-400" />
-              View Live Website
-            </span>
-          </Link>
-
+        {/* Mobile bar */}
+        <div className="md:hidden bg-surface border-b border-line px-5 py-4 flex items-center justify-between">
+          <BrandLogo />
           <button
-            onClick={handleLogout}
-            id="admin-logout-btn"
-            className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl text-red-400 hover:text-red-300 hover:bg-red-950/40 transition-colors font-semibold"
+            onClick={() => setMobileNavOpen(!mobileNavOpen)}
+            aria-expanded={mobileNavOpen}
+            aria-label={mobileNavOpen ? 'Close menu' : 'Open menu'}
+            className="type-label text-ink border border-line-strong px-3 py-2"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            <span>Sign Out</span>
+            {mobileNavOpen ? 'Close' : 'Menu'}
           </button>
         </div>
-      </aside>
 
-      {/* Mobile Top Header */}
-      <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 flex items-center justify-between">
-        <BrandLogo variant="light" />
-        <button
-          onClick={() => setMobileNavOpen(!mobileNavOpen)}
-          className="p-2 rounded-lg bg-slate-950 text-slate-300 border border-slate-800"
-        >
-          {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </button>
-      </div>
-
-      {/* Mobile Nav Drawer */}
-      {mobileNavOpen && (
-        <div className="md:hidden bg-slate-900 border-b border-slate-800 p-4 space-y-3">
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setMobileNavOpen(false)}
-                  className={`flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-bold ${
-                    isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800'
-                  }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  <span>{item.name}</span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="pt-3 border-t border-slate-800 flex items-center justify-between text-xs">
-            <Link href="/" target="_blank" className="text-blue-400 font-semibold flex items-center gap-1">
-              <ExternalLink className="w-3.5 h-3.5" /> Live Site
-            </Link>
-            <button onClick={handleLogout} className="text-red-400 font-semibold flex items-center gap-1">
-              <LogOut className="w-3.5 h-3.5" /> Sign Out
-            </button>
+        {mobileNavOpen && (
+          <div className="md:hidden bg-canvas-sunk border-b border-line px-5 pb-5">
+            <nav className="border-t border-line">
+              {NAV_ITEMS.map(item => navLink(item.href, item.name, () => setMobileNavOpen(false)))}
+            </nav>
+            <div className="flex items-center justify-between pt-4">
+              <Link href="/" target="_blank" className="type-small text-ink-2">
+                View live site
+              </Link>
+              <button onClick={handleLogout} className="type-small text-urgent">
+                Sign out
+              </button>
+            </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Main Admin Content View */}
-      <main className="flex-1 overflow-y-auto p-5 sm:p-8 lg:p-10">{children}</main>
-    </div>
+        <main className="flex-1 min-w-0 px-5 py-8 sm:px-8 lg:px-10 lg:py-10">
+          <div className="max-w-[76rem] mx-auto space-y-8">{children}</div>
+        </main>
+      </div>
+    </ToastProvider>
   );
 }

@@ -1,25 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { isValidAdminPassword, setAdminSessionCookie } from '@/lib/auth';
+import { authenticateAdmin, setAdminSessionCookie } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { password } = body;
+    const { email, password } = body;
 
     if (!password || typeof password !== 'string') {
       return NextResponse.json({ success: false, error: 'Password is required.' }, { status: 400 });
     }
 
-    if (!isValidAdminPassword(password)) {
-      return NextResponse.json({ success: false, error: 'Invalid admin credentials.' }, { status: 401 });
+    if (email !== undefined && typeof email !== 'string') {
+      return NextResponse.json({ success: false, error: 'Email must be a string.' }, { status: 400 });
     }
 
-    await setAdminSessionCookie();
+    const result = authenticateAdmin(email, password);
+
+    if (!result.success) {
+      return NextResponse.json({ success: false, error: result.error }, { status: 401 });
+    }
+
+    await setAdminSessionCookie(result.admin);
 
     return NextResponse.json({
       success: true,
       message: 'Authenticated successfully as QP HVAC Administrator.',
-      user: { role: 'admin', name: 'Jayson (QP HVAC)' }
+      user: result.admin,
     });
   } catch (error) {
     console.error('Login error:', error);

@@ -1,13 +1,18 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Lock, ArrowRight, ShieldCheck, AlertCircle } from 'lucide-react';
+import React, { Suspense, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { BrandLogo } from '@/components/ui/BrandLogo';
+import { Button } from '@/components/ui/Button';
 
-export default function AdminLoginPage() {
+function AdminLoginForm() {
   const router = useRouter();
-  const [password, setPassword] = useState('admin');
+  const searchParams = useSearchParams();
+  const nextPath = searchParams.get('next');
+  const redirectTo = nextPath && nextPath.startsWith('/admin') ? nextPath : '/admin';
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -20,7 +25,7 @@ export default function AdminLoginPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password }),
+        body: JSON.stringify({ email: email.trim() || undefined, password }),
       });
 
       const data = await res.json();
@@ -29,7 +34,8 @@ export default function AdminLoginPage() {
         throw new Error(data.error || 'Invalid credentials');
       }
 
-      router.push('/admin');
+      router.replace(redirectTo);
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Login failed');
     } finally {
@@ -38,74 +44,86 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-2xl relative">
-        <div className="text-center mb-8">
-          <div className="flex justify-center mb-4">
-            <BrandLogo variant="light" />
-          </div>
-          <span className="text-[11px] uppercase font-bold tracking-widest text-blue-400 bg-blue-950/80 px-3 py-1 rounded-full border border-blue-800">
-            Administrative Access
-          </span>
-          <h1 className="text-2xl font-black text-white tracking-tight mt-3">Technician Dispatch Portal</h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Sign in to manage appointments, inquiries, services, and live site settings.
+    <div className="min-h-screen bg-canvas flex flex-col items-center justify-center px-5 py-16">
+      <div className="w-full max-w-[26rem]">
+        <BrandLogo />
+
+        <div className="bg-surface border border-line p-8 sm:p-10 mt-8">
+          <span className="type-label text-ink-3">Dispatch portal</span>
+          <h1 className="type-h2 text-ink mt-3">Sign in</h1>
+          <p className="type-small text-ink-2 mt-3">
+            Manage appointments, inquiries, services, media and site settings.
           </p>
-        </div>
 
-        {error && (
-          <div className="mb-6 p-3.5 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-2.5">
-            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-            <span>{error}</span>
-          </div>
-        )}
+          {error && (
+            <p role="alert" className="type-small text-urgent border-l-2 border-urgent pl-4 mt-7">
+              {error}
+            </p>
+          )}
 
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-              Admin Password
-            </label>
-            <div className="relative">
+          <form onSubmit={handleLogin} className="mt-8 space-y-5">
+            <div>
+              <label htmlFor="admin-email" className="field-label">
+                Email address
+              </label>
               <input
+                id="admin-email"
+                type="email"
+                autoComplete="username"
+                value={email}
+                onChange={e => setEmail(e.target.value)}
+                placeholder="admin@example.com"
+                className="field"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="admin-password" className="field-label">
+                Password
+              </label>
+              <input
+                id="admin-password"
                 type="password"
                 required
+                autoComplete="current-password"
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password..."
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 pl-10 text-sm text-white focus:outline-none focus:border-blue-500"
+                onChange={e => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                className="field"
               />
-              <Lock className="w-4 h-4 text-slate-500 absolute left-3.5 top-3.5" />
             </div>
-          </div>
 
-          {/* Preset hint */}
-          <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
-            <span>Pre-filled credentials:</span>
-            <code className="text-blue-400 font-mono font-bold bg-slate-900 px-2 py-0.5 rounded">admin</code>
-          </div>
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            id="admin-login-submit-btn"
-            className="w-full inline-flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-lg transition-all active:scale-[0.99] disabled:opacity-50"
-          >
-            {isLoading ? (
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            ) : (
-              <>
-                <span>Sign In to Dashboard</span>
-                <ArrowRight className="w-4 h-4" />
-              </>
-            )}
-          </button>
-        </form>
-
-        <div className="mt-6 pt-6 border-t border-slate-800 text-center text-xs text-slate-500 flex items-center justify-center gap-1.5">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Protected session cookie auth</span>
+            <Button
+              type="submit"
+              id="admin-login-submit-btn"
+              variant="primary"
+              size="md"
+              fullWidth
+              disabled={isLoading}
+            >
+              {isLoading ? 'Signing in…' : 'Sign in'}
+            </Button>
+          </form>
         </div>
+
+        <p className="type-meta text-ink-3 mt-6">
+          Access is limited to accounts created by the administrator seed.
+        </p>
       </div>
     </div>
+  );
+}
+
+export default function AdminLoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-canvas flex items-center justify-center">
+          <span className="type-label text-ink-3">Loading…</span>
+        </div>
+      }
+    >
+      <AdminLoginForm />
+    </Suspense>
   );
 }

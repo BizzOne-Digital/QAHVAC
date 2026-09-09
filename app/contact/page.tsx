@@ -11,6 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
 import { HERO_ART } from '@/lib/images';
 
+
 export default function ContactPage() {
   const [formData, setFormData] = useState({
     name: '',

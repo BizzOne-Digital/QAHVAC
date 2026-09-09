@@ -1,240 +1,277 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import Image from 'next/image';
-import {
-  Upload,
-  Image as ImageIcon,
-  Copy,
-  Check,
-  Trash2,
-  AlertCircle,
-  FileCheck,
-  FolderOpen
-} from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { AdminImage } from '@/components/admin/AdminImage';
+import { useToast } from '@/components/admin/Toast';
+import { AdminPageHeading, EmptyState, LoadingState, Panel } from '@/components/admin/ui';
+import { Button } from '@/components/ui/Button';
 import { StoredUpload } from '@/types';
+import {
+  ACCEPT_ATTRIBUTE,
+  ALLOWED_MIME_TYPES,
+  MAX_UPLOAD_BYTES,
+  MAX_UPLOAD_LABEL,
+  UPLOAD_FOLDERS,
+  UploadFolder,
+  isAllowedMimeType,
+} from '@/lib/uploads/validation';
+
+function formatSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 export default function AdminMediaPage() {
   const [uploads, setUploads] = useState<StoredUpload[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
-  const [selectedFolder, setSelectedFolder] = useState<'services' | 'team' | 'misc'>('services');
+  const [folder, setFolder] = useState<UploadFolder>('products');
   const [copiedUrl, setCopiedUrl] = useState<string | null>(null);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
-  const fetchUploads = async () => {
+  const fetchUploads = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/upload');
       const data = await res.json();
-      if (data.success) {
-        setUploads(data.data);
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Could not load the media library.');
       }
+      setUploads(data.data);
     } catch (err) {
-      console.error('Error fetching uploads:', err);
+      toast.error(err instanceof Error ? err.message : 'Could not load the media library.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
     fetchUploads();
-  }, []);
+  }, [fetchUploads]);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = '';
     if (!file) return;
 
+    if (!isAllowedMimeType(file.type)) {
+      toast.error('Unsupported image type. Use PNG, JPG, WebP or GIF.');
+      return;
+    }
+
+    if (file.size > MAX_UPLOAD_BYTES) {
+      toast.error(`Maximum image size is ${MAX_UPLOAD_LABEL}.`);
+      return;
+    }
+
     setUploading(true);
-    setErrorMessage(null);
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('folder', selectedFolder);
-
     try {
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', folder);
 
+      const res = await fetch('/api/upload', { method: 'POST', body: formData });
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Upload failed');
+        throw new Error(data.error || 'Image upload failed.');
       }
 
-      fetchUploads();
+      toast.success('Image uploaded successfully.');
+      await fetchUploads();
     } catch (err) {
-      setErrorMessage(err instanceof Error ? err.message : 'Upload failed');
+      toast.error(err instanceof Error ? err.message : 'Image upload failed.');
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   };
 
-  const copyToClipboard = (url: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedUrl(url);
-    setTimeout(() => setCopiedUrl(null), 2500);
+  const copyToClipboard = async (url: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopiedUrl(url);
+      setTimeout(() => setCopiedUrl(null), 2500);
+    } catch {
+      toast.error('Could not copy the URL to the clipboard.');
+    }
   };
 
-  const handleDelete = async (id: string) => {
+  const handleDelete = async (upload: StoredUpload) => {
     try {
-      const res = await fetch(`/api/upload?id=${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/upload?url=${encodeURIComponent(upload.url)}`, {
+        method: 'DELETE',
+      });
       const data = await res.json();
-      if (data.success) {
-        setUploads(prev => prev.filter(u => u.id !== id));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'The image could not be removed.');
       }
+
+      setUploads(prev => prev.filter(u => u.id !== upload.id));
+      toast.success('Image removed successfully.');
     } catch (err) {
-      console.error('Error deleting upload:', err);
+      toast.error(err instanceof Error ? err.message : 'The image could not be removed.');
+    } finally {
+      setPendingDelete(null);
     }
   };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-          Media Library & Equipment Photo Storage
-        </h1>
-        <p className="text-xs text-slate-400 mt-1">
-          Upload and manage images stored for HVAC service cards, before/after job photos, and site banners.
-        </p>
-      </div>
+    <>
+      <AdminPageHeading
+        eyebrow="Media"
+        title="Image library"
+        description="Images are stored in the database and served from /api/uploads, so they survive redeployments."
+        actions={
+          <Button variant="secondary" size="sm" onClick={fetchUploads} disabled={loading}>
+            {loading ? 'Refreshing…' : 'Refresh'}
+          </Button>
+        }
+      />
 
-      {errorMessage && (
-        <div className="p-3.5 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-2.5">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      {/* Upload Box */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-xl">
-        <div className="max-w-xl mx-auto text-center space-y-4">
-          <div className="flex items-center justify-center gap-2">
-            <span className="text-xs font-bold text-slate-400">Target Category / Folder:</span>
+      <Panel>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="max-w-[24rem] w-full">
+            <label htmlFor="media-folder" className="field-label">
+              Destination folder
+            </label>
             <select
-              value={selectedFolder}
-              onChange={(e) => setSelectedFolder(e.target.value as 'services' | 'team' | 'misc')}
-              className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500"
+              id="media-folder"
+              value={folder}
+              onChange={e => setFolder(e.target.value as UploadFolder)}
+              className="field"
             >
-              <option value="services">services (Equipment & diagnostic photos)</option>
-              <option value="team">team (Craftsman & truck photos)</option>
-              <option value="misc">misc (Banners & general assets)</option>
+              {UPLOAD_FOLDERS.map(name => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
             </select>
+            <p className="type-meta text-ink-3 mt-2">
+              {ALLOWED_MIME_TYPES.map(t => t.replace('image/', '').toUpperCase()).join(', ')} · maximum{' '}
+              {MAX_UPLOAD_LABEL}
+            </p>
           </div>
 
-          <label
-            htmlFor="media-file-input"
-            className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
-              uploading
-                ? 'border-blue-500 bg-blue-950/20'
-                : 'border-slate-700 hover:border-slate-500 bg-slate-950/60'
-            }`}
-          >
-            <div className="w-12 h-12 rounded-xl bg-blue-950 text-blue-400 flex items-center justify-center mb-3">
-              <Upload className="w-6 h-6" />
-            </div>
-
-            <span className="text-sm font-bold text-white">
-              {uploading ? 'Uploading & Processing Image...' : 'Click to Upload or Drag & Drop'}
-            </span>
-            <span className="text-[11px] text-slate-400 mt-1">
-              Supports JPEG, PNG, WebP, GIF (Max 8MB). Stored safely and served via /api/uploads/
-            </span>
-
+          <div>
             <input
               id="media-file-input"
+              ref={inputRef}
               type="file"
-              accept="image/jpeg,image/png,image/webp,image/gif"
+              accept={ACCEPT_ATTRIBUTE}
               disabled={uploading}
               onChange={handleFileUpload}
-              className="hidden"
+              className="sr-only"
             />
-          </label>
+            <Button
+              variant="primary"
+              size="md"
+              onClick={() => inputRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? 'Uploading…' : 'Upload image'}
+            </Button>
+          </div>
         </div>
-      </div>
+      </Panel>
 
-      {/* Uploaded Items Grid */}
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="font-bold text-sm text-white flex items-center gap-2">
-            <FolderOpen className="w-4 h-4 text-blue-400" />
-            Stored Media Assets ({uploads.length})
-          </h3>
+      <section>
+        <div className="flex items-baseline justify-between gap-4 pb-4 border-b border-line">
+          <h2 className="type-h3 text-ink">Stored images</h2>
+          <span className="type-meta text-ink-3">{uploads.length} in library</span>
         </div>
 
-        {uploads.length === 0 ? (
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-500 text-xs">
-            No media uploaded yet. Use the upload box above to add equipment and site images.
+        {loading ? (
+          <div className="mt-5">
+            <LoadingState>Loading media library…</LoadingState>
+          </div>
+        ) : uploads.length === 0 ? (
+          <div className="mt-5">
+            <EmptyState>
+              No images stored yet. Upload one above, or add an image directly from a service.
+            </EmptyState>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {uploads.map((upload) => {
-              const fileUrl = upload.url || upload.publicUrl || '';
-              return (
-                <div
-                  key={upload.id}
-                  className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden flex flex-col justify-between shadow-lg hover:border-slate-700 transition-colors"
-                >
-                  <div className="relative aspect-[4/3] w-full bg-slate-950">
-                    <Image
-                      src={fileUrl}
-                      alt={upload.filename}
-                      fill
-                      referrerPolicy="no-referrer"
-                      className="object-cover"
-                    />
-                    <div className="absolute top-2 left-2">
-                      <span className="px-2 py-0.5 rounded bg-slate-950/80 text-[10px] font-bold text-white uppercase border border-slate-700">
-                        {upload.folder}
-                      </span>
-                    </div>
+          <ul className="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            {uploads.map(upload => (
+              <li key={upload.id} className="bg-surface border border-line flex flex-col">
+                <div className="relative aspect-[4/3] w-full bg-canvas-sunk border-b border-line">
+                  <AdminImage
+                    src={upload.url}
+                    alt={upload.originalName}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+                    className="object-cover"
+                  />
+                  <span className="absolute top-3 left-3 bg-surface/95 border border-line type-label text-ink-2 px-2 py-1">
+                    {upload.folder}
+                  </span>
+                </div>
+
+                <div className="p-4 flex-1 flex flex-col gap-3">
+                  <div>
+                    <p className="type-h4 text-ink truncate" title={upload.originalName}>
+                      {upload.originalName}
+                    </p>
+                    <p className="type-meta text-ink-3 mt-1">
+                      {formatSize(upload.size)} · {upload.mimeType.replace('image/', '').toUpperCase()}
+                    </p>
                   </div>
 
-                  <div className="p-3.5 space-y-2">
-                    <div className="text-[11px] font-mono text-slate-300 truncate" title={upload.filename}>
-                      {upload.filename}
-                    </div>
-                    <div className="text-[10px] text-slate-500">
-                      {(upload.size / 1024).toFixed(1)} KB • {new Date(upload.createdAt).toLocaleDateString()}
-                    </div>
+                  <p className="type-meta text-ink-3 truncate" title={upload.url}>
+                    {upload.url}
+                  </p>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                      <button
-                        onClick={() => copyToClipboard(fileUrl)}
-                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-400 hover:text-blue-300"
-                      >
-                        {copiedUrl === fileUrl ? (
-                          <>
-                            <Check className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400">Copied URL!</span>
-                          </>
-                        ) : (
-                          <>
-                            <Copy className="w-3.5 h-3.5" />
-                            <span>Copy URL</span>
-                          </>
-                        )}
-                      </button>
+                  <div className="mt-auto pt-3 border-t border-line flex items-center justify-between gap-4">
+                    <button
+                      type="button"
+                      onClick={() => copyToClipboard(upload.url)}
+                      className="type-label text-ink hover:text-ink-2 transition-colors"
+                    >
+                      {copiedUrl === upload.url ? 'Copied' : 'Copy URL'}
+                    </button>
 
+                    {pendingDelete === upload.id ? (
+                      <span className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(upload)}
+                          className="type-label text-urgent hover:text-urgent-hover transition-colors"
+                        >
+                          Confirm
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setPendingDelete(null)}
+                          className="type-label text-ink-3 hover:text-ink transition-colors"
+                        >
+                          Cancel
+                        </button>
+                      </span>
+                    ) : (
                       <button
-                        onClick={() => handleDelete(upload.id)}
-                        className="p-1 rounded text-slate-500 hover:text-red-400"
-                        title="Delete Upload"
+                        type="button"
+                        onClick={() => setPendingDelete(upload.id)}
+                        className="type-label text-urgent hover:text-urgent-hover transition-colors"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        Delete
                       </button>
-                    </div>
+                    )}
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
-    </div>
+      </section>
+
+      <p className="type-meta text-ink-3 border-t border-line pt-5">
+        Deleting an image here does not clear it from a service or setting that still references it —
+        update that record too, or the placeholder will show in its place.
+      </p>
+    </>
   );
 }

@@ -6,8 +6,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   turbopack: {},
-  // Allow access to remote image placeholder.
   images: {
+    // Same-origin images: the stored-upload delivery route and bundled assets.
+    localPatterns: [
+      { pathname: '/api/uploads/**', search: '' },
+      { pathname: '/assets/**', search: '' },
+    ],
     remotePatterns: [
       {
         protocol: 'https',

@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 import { PageHero } from '@/components/ui/PageHero';
 import { Section } from '@/components/ui/Section';
@@ -10,6 +10,13 @@ import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
 import { buildMetadata } from '@/lib/seo';
 import { HERO_ART } from '@/lib/images';
+
+/**
+ * Rendered per request: the page reads live content from the data store, so it
+ * must reflect edits made in the admin dashboard without a rebuild.
+ */
+export const dynamic = 'force-dynamic';
+
 
 export const metadata = buildMetadata({
   title: 'Book an Appointment | Father & Son HVAC Scheduling',
@@ -22,7 +29,7 @@ function BookingContent() {
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
-      <Navbar />
+      <SiteHeader />
 
       <main className="flex-1">
         <PageHero
@@ -71,7 +78,7 @@ function BookingContent() {
         </Section>
       </main>
 
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

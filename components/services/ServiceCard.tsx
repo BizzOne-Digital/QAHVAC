@@ -1,6 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
+import { SafeImage } from '@/components/ui/SafeImage';
 import { ArrowRight } from 'lucide-react';
 import { ServiceItem } from '@/types';
 
@@ -26,7 +26,7 @@ export function ServiceCard({ service, priority = false }: ServiceCardProps) {
       className="group flex flex-col h-full bg-surface overflow-hidden transition-colors duration-300 hover:bg-canvas"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-canvas-sunk">
-        <Image
+        <SafeImage
           src={service.image}
           alt={service.title}
           fill

@@ -1,14 +1,14 @@
 import fs from 'fs';
 import path from 'path';
-import { Booking, ContactSubmission, ServiceItem, SiteSettings, StoredUpload } from '@/types';
+import { AdminUser, Booking, ContactSubmission, ServiceItem, SiteSettings } from '@/types';
 import { APP_CONFIG } from './config';
 
 interface DatabaseSchema {
   settings: SiteSettings;
+  admins: AdminUser[];
   services: ServiceItem[];
   bookings: Booking[];
   inquiries: ContactSubmission[];
-  uploads: StoredUpload[];
 }
 
 const DATA_DIR = path.join(process.cwd(), 'data');
@@ -287,10 +287,10 @@ function getDatabase(): DatabaseSchema {
   if (!fs.existsSync(DB_FILE)) {
     const initialDb: DatabaseSchema = {
       settings: INITIAL_SETTINGS,
+      admins: [],
       services: INITIAL_SERVICES,
       bookings: INITIAL_BOOKINGS,
       inquiries: INITIAL_INQUIRIES,
-      uploads: [],
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2), 'utf-8');
     return initialDb;
@@ -301,19 +301,19 @@ function getDatabase(): DatabaseSchema {
     const parsed = JSON.parse(raw);
     return {
       settings: { ...INITIAL_SETTINGS, ...(parsed.settings || {}) },
+      admins: parsed.admins || [],
       services: parsed.services?.length ? parsed.services : INITIAL_SERVICES,
       bookings: parsed.bookings || [],
       inquiries: parsed.inquiries || [],
-      uploads: parsed.uploads || [],
     };
   } catch (err) {
     console.error('Error reading db.json, returning defaults:', err);
     return {
       settings: INITIAL_SETTINGS,
+      admins: [],
       services: INITIAL_SERVICES,
       bookings: INITIAL_BOOKINGS,
       inquiries: INITIAL_INQUIRIES,
-      uploads: [],
     };
   }
 }
@@ -334,6 +334,43 @@ export const storage = {
     db.settings = { ...db.settings, ...updates };
     saveDatabase(db);
     return db.settings;
+  },
+
+  // Admin accounts
+  getAdmins: (): AdminUser[] => {
+    return getDatabase().admins;
+  },
+  getAdminById: (id: string): AdminUser | undefined => {
+    return getDatabase().admins.find(a => a.id === id);
+  },
+  getAdminByEmail: (email: string): AdminUser | undefined => {
+    const normalised = email.trim().toLowerCase();
+    return getDatabase().admins.find(a => a.email.toLowerCase() === normalised);
+  },
+  saveAdmin: (admin: AdminUser): AdminUser => {
+    const db = getDatabase();
+    const index = db.admins.findIndex(a => a.id === admin.id);
+    if (index >= 0) {
+      db.admins[index] = admin;
+    } else {
+      db.admins.push(admin);
+    }
+    saveDatabase(db);
+    return admin;
+  },
+  updateAdmin: (id: string, updates: Partial<AdminUser>): AdminUser | null => {
+    const db = getDatabase();
+    const index = db.admins.findIndex(a => a.id === id);
+    if (index === -1) return null;
+
+    db.admins[index] = {
+      ...db.admins[index],
+      ...updates,
+      id: db.admins[index].id,
+      updatedAt: new Date().toISOString(),
+    };
+    saveDatabase(db);
+    return db.admins[index];
   },
 
   // Services
@@ -461,38 +498,5 @@ export const storage = {
       return true;
     }
     return false;
-  },
-
-  // Uploads
-  getUploads: (): StoredUpload[] => {
-    return getDatabase().uploads.map(u => ({
-      id: u.id,
-      folder: u.folder,
-      filename: u.filename,
-      originalName: u.originalName,
-      mimeType: u.mimeType,
-      size: u.size,
-      url: u.url,
-      createdAt: u.createdAt,
-    }));
-  },
-  getUploadByFolderAndFilename: (folder: string, filename: string): StoredUpload | undefined => {
-    return getDatabase().uploads.find(u => u.folder === folder && u.filename === filename);
-  },
-  saveUpload: (upload: StoredUpload): StoredUpload => {
-    const db = getDatabase();
-    db.uploads.unshift(upload);
-    saveDatabase(db);
-    return upload;
-  },
-  deleteUpload: (folder: string, filename: string): boolean => {
-    const db = getDatabase();
-    const initialLen = db.uploads.length;
-    db.uploads = db.uploads.filter(u => !(u.folder === folder && u.filename === filename));
-    if (db.uploads.length !== initialLen) {
-      saveDatabase(db);
-      return true;
-    }
-    return false;
-  },
+  }
 };

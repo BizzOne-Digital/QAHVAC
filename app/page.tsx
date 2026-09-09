@@ -5,8 +5,8 @@ import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { Testimonials } from '@/components/home/Testimonials';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { BookingWizard } from '@/components/booking/BookingWizard';
-import { Navbar } from '@/components/layout/Navbar';
-import { Footer } from '@/components/layout/Footer';
+import { SiteHeader } from '@/components/layout/SiteHeader';
+import { SiteFooter } from '@/components/layout/SiteFooter';
 import { EmergencyBanner } from '@/components/layout/EmergencyBanner';
 import { Section } from '@/components/ui/Section';
 import { Container } from '@/components/ui/Container';
@@ -17,6 +17,13 @@ import { Reveal } from '@/components/ui/Reveal';
 import { storage } from '@/lib/storage';
 import { APP_CONFIG } from '@/lib/config';
 import { generateHvacBusinessSchema } from '@/lib/seo';
+
+/**
+ * Rendered per request: the page reads live content from the data store, so it
+ * must reflect edits made in the admin dashboard without a rebuild.
+ */
+export const dynamic = 'force-dynamic';
+
 
 export default function HomePage() {
   const services = storage.getServices(true);
@@ -31,10 +38,14 @@ export default function HomePage() {
       />
 
       {settings.emergencyBanner.enabled && (
-        <EmergencyBanner headline={settings.emergencyBanner.headline} />
+        <EmergencyBanner
+          headline={settings.emergencyBanner.headline}
+          message={settings.emergencyBanner.message}
+          phone={settings.emergencyBanner.phone || settings.phone}
+        />
       )}
 
-      <Navbar />
+      <SiteHeader />
 
       <main className="flex-1">
         <Hero />
@@ -152,7 +163,7 @@ export default function HomePage() {
         </Section>
       </main>
 
-      <Footer />
+      <SiteFooter />
     </div>
   );
 }

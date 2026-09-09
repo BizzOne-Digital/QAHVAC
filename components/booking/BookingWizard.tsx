@@ -2,11 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
-import { PropertyType, BookingUrgency } from '@/types';
+import { PropertyType, BookingUrgency, ServiceItem } from '@/types';
 import { APP_CONFIG } from '@/lib/config';
 import { Button } from '@/components/ui/Button';
 
 interface BookingWizardProps {
+  /** Slug, id or title of the service to preselect. Defaults to the first published service. */
   initialService?: string;
   onSuccess?: (referenceNumber: string) => void;
   /** Drops the surrounding panel when the page already provides one, e.g. a sidebar. */
@@ -21,11 +22,14 @@ const STEP_TITLES = [
 ];
 
 export function BookingWizard({
-  initialService = 'High-Efficiency Furnace & Heating Systems',
+  initialService = '',
   frameless = false,
 }: BookingWizardProps) {
   const frame = frameless ? '' : 'bg-surface border border-line p-6 sm:p-10 lg:p-12 max-w-[52rem] mx-auto';
   const [step, setStep] = useState(1);
+  const [services, setServices] = useState<ServiceItem[]>([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [servicesError, setServicesError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [bookingSuccess, setBookingSuccess] = useState<{
@@ -39,7 +43,8 @@ export function BookingWizard({
   // Form State
   const [formData, setFormData] = useState({
     propertyType: 'residential' as PropertyType,
-    serviceName: initialService,
+    serviceId: '',
+    serviceName: '',
     urgency: 'standard' as BookingUrgency,
     equipmentAge: '5-10 years',
     issueDescription: '',
@@ -60,38 +65,51 @@ export function BookingWizard({
     setFormData(prev => (prev.preferredDate ? prev : { ...prev, preferredDate: dateStr }));
   }, []);
 
-  const availableServices = [
-    {
-      name: 'High-Efficiency Furnace & Heating Systems',
-      note: 'Winter warmth',
-      desc: 'No-heat diagnosis, burner repair, safety inspection and replacements',
-    },
-    {
-      name: 'Precision Air Conditioning & Central Air',
-      note: 'Summer cooling',
-      desc: 'Refrigerant leak detection, coil cleaning, condenser replacement',
-    },
-    {
-      name: 'Cold-Climate Heat Pumps & Ductless Mini-Splits',
-      note: 'Rebate eligible',
-      desc: 'Year-round dual climate, cold-climate inverter installations',
-    },
-    {
-      name: '24/7 Rapid Emergency Heating & Cooling Dispatch',
-      note: 'Same day',
-      desc: 'Immediate restoration for complete climate failures',
-    },
-    {
-      name: '21-Point Seasonal HVAC Tune-Up & Safety Audit',
-      note: '$129 special',
-      desc: 'Prevent breakdowns, clean electrical contacts, optimise airflow',
-    },
-    {
-      name: 'Commercial HVAC & Light Industrial Solutions',
-      note: 'Business priority',
-      desc: 'Rooftop package units and commercial maintenance agreements',
-    },
-  ];
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadServices = async () => {
+      setServicesLoading(true);
+      setServicesError(null);
+      try {
+        const res = await fetch('/api/services?active=true');
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          throw new Error(data.error || 'Unable to load the service list.');
+        }
+        if (cancelled) return;
+
+        const list: ServiceItem[] = data.data;
+        setServices(list);
+
+        // Preselect whatever the page asked for, matching by slug, id or title.
+        const preselected =
+          list.find((svc) => svc.slug === initialService) ||
+          list.find((svc) => svc.id === initialService) ||
+          list.find((svc) => svc.title === initialService) ||
+          list[0];
+
+        if (preselected) {
+          setFormData((prev) => ({
+            ...prev,
+            serviceId: preselected.id,
+            serviceName: preselected.title,
+          }));
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setServicesError(err instanceof Error ? err.message : 'Unable to load the service list.');
+        }
+      } finally {
+        if (!cancelled) setServicesLoading(false);
+      }
+    };
+
+    loadServices();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialService]);
 
   const timeSlots = [
     'Morning (8:00 AM - 12:00 PM)',
@@ -103,7 +121,7 @@ export function BookingWizard({
   const handleNext = () => {
     setErrorMessage(null);
     if (step === 1) {
-      if (!formData.serviceName) {
+      if (!formData.serviceId || !formData.serviceName) {
         setErrorMessage('Please select an HVAC service.');
         return;
       }
@@ -153,7 +171,7 @@ export function BookingWizard({
         phone: formData.phone,
         propertyType: formData.propertyType,
         serviceName: formData.serviceName,
-        serviceId: 'srv-' + formData.serviceName.toLowerCase().replace(/[^a-z0-9]+/g, '-').slice(0, 15),
+        serviceId: formData.serviceId,
         preferredDate: formData.preferredDate,
         preferredTimeSlot: formData.preferredTimeSlot,
         urgency: formData.urgency,
@@ -291,39 +309,62 @@ export function BookingWizard({
             Select your primary heating, cooling or maintenance requirement.
           </p>
 
-          <ul className="mt-8 border-t border-line">
-            {availableServices.map((svc) => {
-              const isSelected = formData.serviceName === svc.name;
-              return (
-                <li key={svc.name} className="border-b border-line">
-                  <button
-                    type="button"
-                    onClick={() => setFormData({ ...formData, serviceName: svc.name })}
-                    aria-pressed={isSelected}
-                    className="group w-full text-left py-5 flex items-start gap-4 transition-colors"
-                  >
-                    <span
-                      className={`mt-1 w-4 h-4 flex-shrink-0 rounded-full border flex items-center justify-center transition-colors ${
-                        isSelected ? 'border-ink bg-ink text-white' : 'border-line-strong group-hover:border-ink-3'
-                      }`}
-                    >
-                      {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
-                    </span>
+          {servicesLoading && (
+            <p className="type-small text-ink-3 mt-8 border-t border-line pt-6">
+              Loading available services...
+            </p>
+          )}
 
-                    <span className="flex-1">
-                      <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-                        <span className={`type-h4 ${isSelected ? 'text-ink' : 'text-ink-2 group-hover:text-ink'}`}>
-                          {svc.name}
-                        </span>
-                        <span className="type-label text-ink-3">{svc.note}</span>
+          {!servicesLoading && servicesError && (
+            <p role="alert" className="type-small text-urgent mt-8 border-l-2 border-urgent pl-4">
+              {servicesError} Please refresh, or call Jayson directly at {APP_CONFIG.phoneDisplay}.
+            </p>
+          )}
+
+          {!servicesLoading && !servicesError && services.length === 0 && (
+            <p className="type-small text-ink-3 mt-8 border-t border-line pt-6">
+              No services are published right now. Please call Jayson at {APP_CONFIG.phoneDisplay} and we will
+              book you in directly.
+            </p>
+          )}
+
+          {!servicesLoading && services.length > 0 && (
+            <ul className="mt-8 border-t border-line">
+              {services.map((svc) => {
+                const isSelected = formData.serviceId === svc.id;
+                return (
+                  <li key={svc.id} className="border-b border-line">
+                    <button
+                      type="button"
+                      onClick={() => setFormData({ ...formData, serviceId: svc.id, serviceName: svc.title })}
+                      aria-pressed={isSelected}
+                      className="group w-full text-left py-5 flex items-start gap-4 transition-colors"
+                    >
+                      <span
+                        className={`mt-1 w-4 h-4 flex-shrink-0 rounded-full border flex items-center justify-center transition-colors ${
+                          isSelected ? 'border-ink bg-ink text-white' : 'border-line-strong group-hover:border-ink-3'
+                        }`}
+                      >
+                        {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
                       </span>
-                      <span className="type-meta text-ink-3 block mt-1.5">{svc.desc}</span>
-                    </span>
-                  </button>
-                </li>
-              );
-            })}
-          </ul>
+
+                      <span className="flex-1">
+                        <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                          <span className={`type-h4 ${isSelected ? 'text-ink' : 'text-ink-2 group-hover:text-ink'}`}>
+                            {svc.title}
+                          </span>
+                          <span className="type-label text-ink-3">
+                            {svc.emergencyAvailable ? 'Emergency available' : svc.durationEstimate}
+                          </span>
+                        </span>
+                        <span className="type-meta text-ink-3 block mt-1.5">{svc.shortDesc}</span>
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
 
           <div className="flex justify-end mt-10">
             <Button type="button" onClick={handleNext} id="wizard-step1-next-btn" variant="primary" size="md">

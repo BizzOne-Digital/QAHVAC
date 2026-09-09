@@ -1,25 +1,35 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useToast } from '@/components/admin/Toast';
 import {
-  Calendar,
-  Clock,
-  CheckCircle2,
-  AlertCircle,
-  PhoneCall,
-  Flame,
-  Snowflake,
-  MessageSquare,
-  Wrench,
-  ArrowRight,
-  RefreshCw,
-  UserCheck,
-  TrendingUp,
-  AlertTriangle
-} from 'lucide-react';
+  AdminPageHeading,
+  EmptyState,
+  LoadingState,
+  Panel,
+  StatPanel,
+  StatusPill,
+} from '@/components/admin/ui';
+import { Button } from '@/components/ui/Button';
 import { Booking, ContactSubmission, ServiceItem, SiteSettings } from '@/types';
-import { APP_CONFIG } from '@/lib/config';
+import { toSiteContact } from '@/lib/site';
+
+const STATUS_TONE: Record<Booking['status'], 'active' | 'neutral' | 'muted'> = {
+  pending: 'neutral',
+  confirmed: 'active',
+  in_progress: 'active',
+  completed: 'muted',
+  cancelled: 'muted',
+};
+
+const STATUS_LABEL: Record<Booking['status'], string> = {
+  pending: 'Pending',
+  confirmed: 'Confirmed',
+  in_progress: 'In progress',
+  completed: 'Completed',
+  cancelled: 'Cancelled',
+};
 
 export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -28,6 +38,7 @@ export default function AdminDashboardPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const toast = useToast();
 
   const fetchData = async () => {
     setLoading(true);
@@ -50,8 +61,8 @@ export default function AdminDashboardPage() {
       if (iData.success) setInquiries(iData.data);
       if (sData.success) setServices(sData.data);
       if (setData.success) setSettings(setData.data);
-    } catch (err) {
-      console.error('Error loading dashboard data:', err);
+    } catch {
+      toast.error('Could not load the dashboard. Check the connection and refresh.');
     } finally {
       setLoading(false);
     }
@@ -59,6 +70,8 @@ export default function AdminDashboardPage() {
 
   useEffect(() => {
     fetchData();
+    // Runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleQuickStatusChange = async (id: string, newStatus: Booking['status']) => {
@@ -70,11 +83,15 @@ export default function AdminDashboardPage() {
         body: JSON.stringify({ status: newStatus }),
       });
       const data = await res.json();
-      if (data.success) {
-        setBookings(prev => prev.map(b => (b.id === id ? { ...b, status: newStatus } : b)));
+
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'The appointment could not be updated.');
       }
+
+      setBookings(prev => prev.map(b => (b.id === id ? data.data : b)));
+      toast.success(`Appointment marked ${STATUS_LABEL[newStatus].toLowerCase()}.`);
     } catch (err) {
-      console.error('Error updating status:', err);
+      toast.error(err instanceof Error ? err.message : 'The appointment could not be updated.');
     } finally {
       setUpdatingId(null);
     }
@@ -84,282 +101,199 @@ export default function AdminDashboardPage() {
   const confirmedBookings = bookings.filter(b => b.status === 'confirmed');
   const emergencyBookings = bookings.filter(b => b.urgency === 'emergency_today');
   const newInquiries = inquiries.filter(i => i.status === 'new');
+  const contact = toSiteContact(settings);
 
   return (
-    <div className="space-y-8">
-      {/* Top Welcome & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-              Executive Dispatch Dashboard
-            </h1>
-            <span className="px-2.5 py-0.5 rounded-full bg-emerald-950 text-emerald-400 text-[11px] font-bold border border-emerald-800">
-              Live System
-            </span>
-          </div>
-          <p className="text-xs text-slate-400 mt-1">
-            Real-time appointment schedule, customer inquiries, and equipment maintenance operations.
-          </p>
-        </div>
+    <>
+      <AdminPageHeading
+        eyebrow="Overview"
+        title="Dispatch board"
+        description="Appointments, inquiries and the state of the public catalogue."
+        actions={
+          <>
+            <Button variant="secondary" size="sm" onClick={fetchData} disabled={loading}>
+              {loading ? 'Refreshing…' : 'Refresh'}
+            </Button>
+            <Button href="/admin/bookings" variant="primary" size="sm">
+              All appointments
+            </Button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={fetchData}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-800 transition-colors"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-
-          <Link
-            href="/admin/bookings"
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold shadow-md transition-all"
-          >
-            <Calendar className="w-3.5 h-3.5" />
-            <span>Manage All Bookings</span>
-          </Link>
-        </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <StatPanel
+          label="Awaiting confirmation"
+          value={pendingBookings.length}
+          note="Requests not yet slotted"
+        />
+        <StatPanel
+          label="Confirmed"
+          value={confirmedBookings.length}
+          note="On the dispatch calendar"
+        />
+        <StatPanel
+          label="Emergency today"
+          value={emergencyBookings.length}
+          note="No heat or no cooling"
+          urgent={emergencyBookings.length > 0}
+        />
+        <StatPanel label="Unread inquiries" value={newInquiries.length} note="From the contact form" />
       </div>
 
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Pending Bookings */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Needs Confirmation</span>
-            <div className="p-2 rounded-xl bg-amber-950/80 text-amber-400 border border-amber-800/80">
-              <Clock className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <span className="text-3xl font-black text-white">{pendingBookings.length}</span>
-            <span className="text-xs text-amber-400 font-semibold ml-2">Pending Calls</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Awaiting technician arrival verification</p>
-        </div>
-
-        {/* Confirmed Dispatch */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Confirmed Jobs</span>
-            <div className="p-2 rounded-xl bg-emerald-950/80 text-emerald-400 border border-emerald-800/80">
-              <CheckCircle2 className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <span className="text-3xl font-black text-white">{confirmedBookings.length}</span>
-            <span className="text-xs text-emerald-400 font-semibold ml-2">Scheduled</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Slotted on master dispatch calendar</p>
-        </div>
-
-        {/* Urgent Emergency Requests */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">Urgent Callouts</span>
-            <div className="p-2 rounded-xl bg-red-950/80 text-red-400 border border-red-800/80">
-              <Flame className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <span className="text-3xl font-black text-white">{emergencyBookings.length}</span>
-            <span className="text-xs text-red-400 font-semibold ml-2">Emergency / Today</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">No-heat or AC down priority</p>
-        </div>
-
-        {/* Customer Inquiries */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 relative overflow-hidden shadow-lg">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold uppercase tracking-wider text-slate-400">New Inquiries</span>
-            <div className="p-2 rounded-xl bg-blue-950/80 text-blue-400 border border-blue-800/80">
-              <MessageSquare className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="mt-4">
-            <span className="text-3xl font-black text-white">{newInquiries.length}</span>
-            <span className="text-xs text-blue-400 font-semibold ml-2">Unread Messages</span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">Direct contact submissions</p>
-        </div>
-      </div>
-
-      {/* Main Two-Column View: Priority Bookings & Recent Inquiries */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Recent Bookings Queue */}
-        <div className="lg:col-span-8 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div>
-              <h3 className="font-bold text-base text-white">Recent Service Requests</h3>
-              <p className="text-xs text-slate-400">Incoming appointment bookings needing scheduling or dispatch action.</p>
-            </div>
-            <Link
-              href="/admin/bookings"
-              className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
-            >
-              <span>View All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Recent appointments */}
+        <section className="lg:col-span-8">
+          <div className="flex items-baseline justify-between gap-4 pb-4 border-b border-line">
+            <h2 className="type-h3 text-ink">Recent requests</h2>
+            <Link href="/admin/bookings" className="type-label text-ink-2 hover:text-ink transition-colors">
+              View all
             </Link>
           </div>
 
-          {bookings.length === 0 ? (
-            <div className="py-12 text-center text-slate-500 text-xs">
-              No appointments recorded yet. New requests from the website will appear here immediately.
+          {loading ? (
+            <div className="mt-5">
+              <LoadingState>Loading appointments…</LoadingState>
+            </div>
+          ) : bookings.length === 0 ? (
+            <div className="mt-5">
+              <EmptyState>
+                No appointments yet. Requests from the website appear here immediately.
+              </EmptyState>
             </div>
           ) : (
-            <div className="space-y-3">
-              {bookings.slice(0, 5).map((bkg) => (
-                <div
-                  key={bkg.id}
-                  className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-slate-700 transition-colors"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono text-xs font-bold text-blue-400">{bkg.referenceNumber}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                        bkg.status === 'confirmed'
-                          ? 'bg-emerald-950 text-emerald-400 border border-emerald-800'
-                          : bkg.status === 'pending'
-                          ? 'bg-amber-950 text-amber-400 border border-amber-800'
-                          : bkg.status === 'completed'
-                          ? 'bg-blue-950 text-blue-400 border border-blue-800'
-                          : 'bg-slate-800 text-slate-400'
-                      }`}>
-                        {bkg.status}
-                      </span>
-                      {bkg.urgency === 'emergency_today' && (
-                        <span className="px-2 py-0.5 rounded bg-red-950 text-red-400 text-[10px] font-bold border border-red-800 flex items-center gap-1">
-                          <Flame className="w-3 h-3 text-red-400" />
-                          URGENT
-                        </span>
-                      )}
+            <ul className="mt-5 space-y-4">
+              {bookings.slice(0, 5).map(bkg => (
+                <li key={bkg.id} className="bg-surface border border-line p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-5">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2.5">
+                        <span className="type-meta text-ink-3 font-mono">{bkg.referenceNumber}</span>
+                        <StatusPill tone={STATUS_TONE[bkg.status]}>
+                          {STATUS_LABEL[bkg.status]}
+                        </StatusPill>
+                        {bkg.urgency === 'emergency_today' && (
+                          <StatusPill tone="urgent">Emergency</StatusPill>
+                        )}
+                      </div>
+
+                      <p className="type-h4 text-ink mt-3">
+                        {bkg.customerName}{' '}
+                        <span className="type-meta text-ink-3 font-normal">({bkg.propertyType})</span>
+                      </p>
+
+                      <p className="type-small text-ink-2 mt-1">{bkg.serviceName}</p>
+
+                      <p className="type-meta text-ink-3 mt-2.5">
+                        {bkg.preferredDate} · {bkg.preferredTimeSlot} · {bkg.address.street},{' '}
+                        {bkg.address.city}
+                      </p>
                     </div>
 
-                    <div className="font-bold text-sm text-white flex items-center gap-2">
-                      <span>{bkg.customerName}</span>
-                      <span className="text-slate-500 text-xs font-normal">({bkg.propertyType})</span>
-                    </div>
+                    <div className="flex sm:flex-col sm:items-end gap-3 flex-shrink-0">
+                      <a
+                        href={`tel:${bkg.phone}`}
+                        className="type-small text-ink hover:text-ink-2 transition-colors whitespace-nowrap"
+                      >
+                        {bkg.phone}
+                      </a>
 
-                    <p className="text-xs text-slate-300 font-medium">{bkg.serviceName}</p>
-
-                    <div className="text-[11px] text-slate-400 flex flex-wrap items-center gap-3 pt-1">
-                      <span className="flex items-center gap-1">
-                        <Calendar className="w-3 h-3 text-slate-500" />
-                        {bkg.preferredDate} ({bkg.preferredTimeSlot})
-                      </span>
-                      <span>•</span>
-                      <span>{bkg.address.city}, {bkg.address.street}</span>
-                    </div>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex sm:flex-col items-center sm:items-end gap-2 flex-shrink-0">
-                    <a
-                      href={`tel:${bkg.phone}`}
-                      className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-xs font-bold text-slate-200 border border-slate-700"
-                    >
-                      <PhoneCall className="w-3 h-3 text-blue-400" />
-                      <span>{bkg.phone}</span>
-                    </a>
-
-                    <div className="flex items-center gap-1.5">
                       {bkg.status === 'pending' && (
                         <button
+                          type="button"
                           onClick={() => handleQuickStatusChange(bkg.id, 'confirmed')}
                           disabled={updatingId === bkg.id}
-                          className="px-2.5 py-1 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition-all disabled:opacity-50"
+                          className="type-label text-ink hover:text-ink-2 transition-colors disabled:opacity-45 whitespace-nowrap"
                         >
-                          Confirm
+                          {updatingId === bkg.id ? 'Saving…' : 'Confirm'}
                         </button>
                       )}
+
                       {bkg.status === 'confirmed' && (
                         <button
+                          type="button"
                           onClick={() => handleQuickStatusChange(bkg.id, 'completed')}
                           disabled={updatingId === bkg.id}
-                          className="px-2.5 py-1 rounded bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-bold transition-all disabled:opacity-50"
+                          className="type-label text-ink hover:text-ink-2 transition-colors disabled:opacity-45 whitespace-nowrap"
                         >
-                          Mark Completed
+                          {updatingId === bkg.id ? 'Saving…' : 'Mark completed'}
                         </button>
                       )}
-                      <Link
-                        href={`/admin/bookings`}
-                        className="p-1 rounded text-slate-400 hover:text-white"
-                        title="View Full Details"
-                      >
-                        <ArrowRight className="w-4 h-4" />
-                      </Link>
                     </div>
                   </div>
-                </div>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
-        </div>
+        </section>
 
-        {/* Right Column: Inquiries & Emergency Controls */}
+        {/* Side column */}
         <div className="lg:col-span-4 space-y-6">
-          {/* Emergency Alert Status Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
-                <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
-                Emergency Banner Status
-              </span>
-              <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                settings?.emergencyBanner.enabled ? 'bg-red-950 text-red-400 border border-red-800' : 'bg-slate-800 text-slate-400'
-              }`}>
-                {settings?.emergencyBanner.enabled ? 'Active on Public Site' : 'Disabled'}
-              </span>
+          <Panel>
+            <div className="flex items-baseline justify-between gap-4">
+              <span className="type-label text-ink-3">Emergency banner</span>
+              <StatusPill tone={settings?.emergencyBanner.enabled ? 'urgent' : 'muted'}>
+                {settings?.emergencyBanner.enabled ? 'Live' : 'Off'}
+              </StatusPill>
             </div>
-            <p className="text-xs text-slate-300">
-              Hotline Banner currently routes urgent calls directly to Jayson: <strong className="text-white">{APP_CONFIG.phoneDisplay}</strong>
+            <p className="type-small text-ink-2 mt-4">
+              Urgent calls route to {contact.phoneDisplay} on the public site.
             </p>
             <Link
               href="/admin/settings"
-              className="inline-flex items-center gap-1 text-xs font-bold text-blue-400 hover:underline pt-1"
+              className="type-label text-ink hover:text-ink-2 transition-colors inline-block mt-5"
             >
-              <span>Edit Emergency Broadcast Settings</span>
-              <ArrowRight className="w-3 h-3" />
+              Edit banner
             </Link>
-          </div>
+          </Panel>
 
-          {/* Recent Inquiries List */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="font-bold text-sm text-white">Recent Customer Messages</h3>
-              <Link href="/admin/inquiries" className="text-xs text-blue-400 font-bold hover:underline">
-                View All
+          <section>
+            <div className="flex items-baseline justify-between gap-4 pb-4 border-b border-line">
+              <h2 className="type-h3 text-ink">Latest inquiries</h2>
+              <Link
+                href="/admin/inquiries"
+                className="type-label text-ink-2 hover:text-ink transition-colors"
+              >
+                View all
               </Link>
             </div>
 
             {inquiries.length === 0 ? (
-              <div className="py-6 text-center text-slate-500 text-xs">No inquiries yet.</div>
-            ) : (
-              <div className="space-y-3">
-                {inquiries.slice(0, 3).map((inq) => (
-                  <div key={inq.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-white">{inq.name}</span>
-                      <span className="text-[10px] text-slate-500">
-                        {new Date(inq.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <p className="text-[11px] text-slate-400 line-clamp-2">{inq.message}</p>
-                    <div className="pt-1 flex items-center justify-between text-[10px]">
-                      <span className="text-slate-500">{inq.phone || inq.email}</span>
-                      <Link href="/admin/inquiries" className="text-blue-400 font-semibold hover:underline">
-                        Reply
-                      </Link>
-                    </div>
-                  </div>
-                ))}
+              <div className="mt-5">
+                <EmptyState>No messages yet.</EmptyState>
               </div>
+            ) : (
+              <ul className="mt-5 space-y-3">
+                {inquiries.slice(0, 4).map(inq => (
+                  <li key={inq.id} className="bg-surface border border-line p-4">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="type-h4 text-ink truncate">{inq.name}</p>
+                      <StatusPill tone={inq.status === 'new' ? 'active' : 'muted'}>
+                        {inq.status}
+                      </StatusPill>
+                    </div>
+                    <p className="type-meta text-ink-2 mt-2 line-clamp-2">{inq.message}</p>
+                  </li>
+                ))}
+              </ul>
             )}
-          </div>
+          </section>
+
+          <Panel>
+            <span className="type-label text-ink-3">Catalogue</span>
+            <p className="type-small text-ink-2 mt-4">
+              {services.filter(s => s.active).length} of {services.length} services are live on the
+              public site.
+            </p>
+            <Link
+              href="/admin/services"
+              className="type-label text-ink hover:text-ink-2 transition-colors inline-block mt-5"
+            >
+              Manage services
+            </Link>
+          </Panel>
         </div>
       </div>
-    </div>
+    </>
   );
 }

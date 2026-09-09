@@ -1,26 +1,18 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import {
-  Settings,
-  Save,
-  CheckCircle2,
-  AlertCircle,
-  Phone,
-  Mail,
-  Clock,
-  Flame,
-  ShieldCheck,
-  Building2,
-  UserCheck
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { LocalImageField } from '@/components/admin/LocalImageField';
+import { useToast } from '@/components/admin/Toast';
+import { AdminPageHeading, Field, LoadingState, Panel, PanelHeading } from '@/components/admin/ui';
+import { Button } from '@/components/ui/Button';
+import { formatPhoneDisplay } from '@/lib/site';
 import { SiteSettings } from '@/types';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -28,17 +20,25 @@ export default function AdminSettingsPage() {
       try {
         const res = await fetch('/api/settings');
         const data = await res.json();
-        if (data.success) {
-          setSettings(data.data);
-        }
+        if (!res.ok || !data.success) throw new Error(data.error || 'Could not load settings.');
+
+        // phoneDisplay is optional in storage but the input is controlled, so
+        // derive it from the dialable number when it has never been set.
+        const loaded: SiteSettings = data.data;
+        setSettings({
+          ...loaded,
+          phoneDisplay: loaded.phoneDisplay || formatPhoneDisplay(loaded.phone),
+        });
       } catch (err) {
-        console.error('Error fetching settings:', err);
+        toast.error(err instanceof Error ? err.message : 'Could not load settings.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchSettings();
+    // Runs once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
@@ -46,31 +46,22 @@ export default function AdminSettingsPage() {
     if (!settings) return;
 
     setIsSaving(true);
-    setStatusMessage(null);
-
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(settings),
       });
-
       const data = await res.json();
 
       if (!res.ok || !data.success) {
-        throw new Error(data.error || 'Failed to update settings');
+        throw new Error(data.error || 'Settings could not be saved.');
       }
 
       setSettings(data.data);
-      setStatusMessage({
-        type: 'success',
-        text: 'Settings saved successfully! Public website updated.',
-      });
+      toast.success('Settings saved. The public site is updated.');
     } catch (err) {
-      setStatusMessage({
-        type: 'error',
-        text: err instanceof Error ? err.message : 'Error updating settings',
-      });
+      toast.error(err instanceof Error ? err.message : 'Settings could not be saved.');
     } finally {
       setIsSaving(false);
     }
@@ -78,255 +69,321 @@ export default function AdminSettingsPage() {
 
   if (loading || !settings) {
     return (
-      <div className="py-20 text-center text-slate-400 text-xs flex items-center justify-center gap-2">
-        <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <span>Loading QP HVAC Configuration...</span>
-      </div>
+      <>
+        <AdminPageHeading eyebrow="Configuration" title="Site settings" />
+        <LoadingState>Loading settings…</LoadingState>
+      </>
     );
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-            Site & Business Configuration
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            Update business contact details, emergency broadcast banner, and public story.
-          </p>
-        </div>
-      </div>
+    <>
+      <AdminPageHeading
+        eyebrow="Configuration"
+        title="Site settings"
+        description="Business details, opening hours and the copy shown across the public site."
+      />
 
-      {statusMessage && (
-        <div
-          className={`p-4 rounded-xl text-xs flex items-center gap-3 border ${
-            statusMessage.type === 'success'
-              ? 'bg-emerald-950/70 border-emerald-800 text-emerald-200'
-              : 'bg-red-950/70 border-red-800 text-red-200'
-          }`}
-        >
-          {statusMessage.type === 'success' ? (
-            <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          )}
-          <span>{statusMessage.text}</span>
-        </div>
-      )}
+      <form onSubmit={handleSave} className="space-y-6 max-w-[52rem]">
+        <Panel>
+          <PanelHeading>Business details</PanelHeading>
 
-      <form onSubmit={handleSave} className="space-y-6 text-xs">
-        {/* Section 1: Business Identity & Contact */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
-            <Building2 className="w-4 h-4 text-blue-400" />
-            <h3 className="font-bold text-sm text-white">Business Identity & Contact Channels</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Business Name</label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field label="Business name">
               <input
                 type="text"
                 required
                 value={settings.businessName}
-                onChange={(e) => setSettings({ ...settings, businessName: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                onChange={e => setSettings({ ...settings, businessName: e.target.value })}
+                className="field"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Primary Contact Person</label>
+            <Field label="Primary contact">
               <input
                 type="text"
                 required
                 value={settings.contactPerson}
-                onChange={(e) => setSettings({ ...settings, contactPerson: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                onChange={e => setSettings({ ...settings, contactPerson: e.target.value })}
+                className="field"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Direct Phone (Digits)</label>
+            <Field label="Phone (digits only)" hint="Used for tel: links.">
               <input
                 type="text"
                 required
                 value={settings.phone}
-                onChange={(e) => setSettings({ ...settings, phone: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                onChange={e => setSettings({ ...settings, phone: e.target.value })}
+                className="field"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Phone Display Format</label>
+            <Field label="Phone display format">
               <input
                 type="text"
                 required
-                value={settings.phoneDisplay}
-                onChange={(e) => setSettings({ ...settings, phoneDisplay: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                value={settings.phoneDisplay || ''}
+                onChange={e => setSettings({ ...settings, phoneDisplay: e.target.value })}
+                className="field"
               />
-            </div>
+            </Field>
 
-            <div className="sm:col-span-2">
-              <label className="block text-slate-300 font-bold mb-1">Direct Email Address</label>
+            <Field label="Email address" className="sm:col-span-2">
               <input
                 type="email"
                 required
                 value={settings.email}
-                onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                onChange={e => setSettings({ ...settings, email: e.target.value })}
+                className="field"
               />
-            </div>
-          </div>
-        </div>
+            </Field>
 
-        {/* Section 2: Emergency Broadcast Banner */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-red-500" />
-              <h3 className="font-bold text-sm text-white">Emergency Dispatch Broadcast Bar</h3>
-            </div>
-            <label className="flex items-center gap-2 cursor-pointer">
+            <Field label="Service area" className="sm:col-span-2">
               <input
-                type="checkbox"
-                checked={settings.emergencyBanner.enabled}
-                onChange={(e) =>
-                  setSettings({
-                    ...settings,
-                    emergencyBanner: { ...settings.emergencyBanner, enabled: e.target.checked },
-                  })
-                }
-                className="w-4 h-4 text-red-600 rounded bg-slate-950 border-slate-700"
+                type="text"
+                value={settings.serviceArea}
+                onChange={e => setSettings({ ...settings, serviceArea: e.target.value })}
+                className="field"
               />
-              <span className="text-white font-bold">Broadcast Active</span>
-            </label>
+            </Field>
           </div>
+        </Panel>
 
-          <div>
-            <label className="block text-slate-300 font-bold mb-1">Banner Headline Message</label>
+        <Panel>
+          <PanelHeading note="Shown in the header on the public site">Brand mark</PanelHeading>
+          <LocalImageField
+            label="Logo"
+            folder="pages"
+            value={settings.logoUrl}
+            placeholder="Upload a logo"
+            hint="Optional. Leave empty to use the built-in wordmark."
+            onChange={url => setSettings({ ...settings, logoUrl: url || undefined })}
+          />
+        </Panel>
+
+        <Panel>
+          <PanelHeading>Emergency banner</PanelHeading>
+
+          <label className="flex items-center gap-2.5 cursor-pointer">
             <input
-              type="text"
-              value={settings.emergencyBanner.headline}
-              onChange={(e) =>
+              type="checkbox"
+              checked={settings.emergencyBanner.enabled}
+              onChange={e =>
                 setSettings({
                   ...settings,
-                  emergencyBanner: { ...settings.emergencyBanner, headline: e.target.value },
+                  emergencyBanner: { ...settings.emergencyBanner, enabled: e.target.checked },
                 })
               }
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+              className="w-4 h-4 accent-[#9e2b21]"
             />
-          </div>
-        </div>
+            <span className="type-small text-ink">Show the banner on the home page</span>
+          </label>
 
-        {/* Section 3: Operating Hours */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
-            <Clock className="w-4 h-4 text-emerald-400" />
-            <h3 className="font-bold text-sm text-white">Service & Operating Hours</h3>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Monday - Friday</label>
+          <div className="grid grid-cols-1 gap-5 mt-5">
+            <Field label="Headline">
               <input
                 type="text"
-                value={settings.hours?.weekdays || ''}
-                onChange={(e) =>
+                value={settings.emergencyBanner.headline}
+                onChange={e =>
                   setSettings({
                     ...settings,
-                    hours: { ...settings.hours, weekdays: e.target.value },
+                    emergencyBanner: { ...settings.emergencyBanner, headline: e.target.value },
                   })
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="field"
               />
-            </div>
+            </Field>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Saturday</label>
+            <Field label="Message">
+              <textarea
+                rows={2}
+                value={settings.emergencyBanner.message}
+                onChange={e =>
+                  setSettings({
+                    ...settings,
+                    emergencyBanner: { ...settings.emergencyBanner, message: e.target.value },
+                  })
+                }
+                className="field"
+              />
+            </Field>
+
+            <Field label="Banner phone" hint="Leave blank to use the main business number.">
               <input
                 type="text"
-                value={settings.hours?.saturday || ''}
-                onChange={(e) =>
+                value={settings.emergencyBanner.phone}
+                onChange={e =>
                   setSettings({
                     ...settings,
-                    hours: { ...settings.hours, saturday: e.target.value },
+                    emergencyBanner: { ...settings.emergencyBanner, phone: e.target.value },
                   })
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="field"
               />
-            </div>
+            </Field>
+          </div>
+        </Panel>
 
-            <div>
-              <label className="block text-slate-300 font-bold mb-1">Sunday</label>
+        <Panel>
+          <PanelHeading>Opening hours</PanelHeading>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field label="Monday – Friday">
               <input
                 type="text"
-                value={settings.hours?.sunday || ''}
-                onChange={(e) =>
+                value={settings.hours.weekdays}
+                onChange={e =>
+                  setSettings({ ...settings, hours: { ...settings.hours, weekdays: e.target.value } })
+                }
+                className="field"
+              />
+            </Field>
+
+            <Field label="Saturday">
+              <input
+                type="text"
+                value={settings.hours.saturday}
+                onChange={e =>
+                  setSettings({ ...settings, hours: { ...settings.hours, saturday: e.target.value } })
+                }
+                className="field"
+              />
+            </Field>
+
+            <Field label="Sunday">
+              <input
+                type="text"
+                value={settings.hours.sunday}
+                onChange={e =>
+                  setSettings({ ...settings, hours: { ...settings.hours, sunday: e.target.value } })
+                }
+                className="field"
+              />
+            </Field>
+
+            <Field label="Emergency availability">
+              <input
+                type="text"
+                value={settings.hours.emergency}
+                onChange={e =>
+                  setSettings({ ...settings, hours: { ...settings.hours, emergency: e.target.value } })
+                }
+                className="field"
+              />
+            </Field>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeading>Public copy</PanelHeading>
+
+          <div className="space-y-5">
+            <Field label="Tagline" hint="Used as the home page statement and in metadata.">
+              <textarea
+                rows={2}
+                value={settings.tagline || ''}
+                onChange={e =>
+                  setSettings({ ...settings, tagline: e.target.value, heroHeadline: e.target.value })
+                }
+                className="field"
+              />
+            </Field>
+
+            <Field label="About the business">
+              <textarea
+                rows={4}
+                value={settings.aboutStory}
+                onChange={e => setSettings({ ...settings, aboutStory: e.target.value })}
+                className="field"
+              />
+            </Field>
+
+            <Field label="Father and son philosophy">
+              <textarea
+                rows={4}
+                value={settings.fatherSonPhilosophy}
+                onChange={e => setSettings({ ...settings, fatherSonPhilosophy: e.target.value })}
+                className="field"
+              />
+            </Field>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeading note="Shown as figures on the home page">Statistics</PanelHeading>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+            <Field label="Years of experience">
+              <input
+                type="text"
+                value={settings.stats.yearsExperience}
+                onChange={e =>
                   setSettings({
                     ...settings,
-                    hours: { ...settings.hours, sunday: e.target.value },
+                    stats: { ...settings.stats, yearsExperience: e.target.value },
                   })
                 }
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-blue-500"
+                className="field"
               />
-            </div>
-          </div>
-        </div>
+            </Field>
 
-        {/* Section 4: Public Brand Story & Values */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
-          <div className="flex items-center gap-2 pb-3 border-b border-slate-800">
-            <UserCheck className="w-4 h-4 text-blue-400" />
-            <h3 className="font-bold text-sm text-white">Homepage Headline & Public About Story</h3>
-          </div>
+            <Field label="Families served">
+              <input
+                type="text"
+                value={settings.stats.familiesServed}
+                onChange={e =>
+                  setSettings({
+                    ...settings,
+                    stats: { ...settings.stats, familiesServed: e.target.value },
+                  })
+                }
+                className="field"
+              />
+            </Field>
 
-          <div>
-            <label className="block text-slate-300 font-bold mb-1">Homepage Main Headline</label>
-            <textarea
-              rows={2}
-              value={settings.tagline || settings.heroHeadline || ''}
-              onChange={(e) => setSettings({ ...settings, tagline: e.target.value, heroHeadline: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
+            <Field label="Response time">
+              <input
+                type="text"
+                value={settings.stats.responseRate}
+                onChange={e =>
+                  setSettings({
+                    ...settings,
+                    stats: { ...settings.stats, responseRate: e.target.value },
+                  })
+                }
+                className="field"
+              />
+            </Field>
 
-          <div>
-            <label className="block text-slate-300 font-bold mb-1">About Your Business Story</label>
-            <textarea
-              rows={3}
-              value={settings.aboutStory}
-              onChange={(e) => setSettings({ ...settings, aboutStory: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"
-            />
+            <Field label="Satisfaction rate">
+              <input
+                type="text"
+                value={settings.stats.satisfactionRate}
+                onChange={e =>
+                  setSettings({
+                    ...settings,
+                    stats: { ...settings.stats, satisfactionRate: e.target.value },
+                  })
+                }
+                className="field"
+              />
+            </Field>
           </div>
+        </Panel>
 
-          <div>
-            <label className="block text-slate-300 font-bold mb-1">Father & Son Philosophy</label>
-            <textarea
-              rows={2}
-              value={settings.fatherSonPhilosophy}
-              onChange={(e) => setSettings({ ...settings, fatherSonPhilosophy: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-white focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        {/* Action Button */}
-        <div className="flex justify-end pt-4">
-          <button
+        <div className="flex justify-end gap-3 border-t border-line pt-6">
+          <Button
             type="submit"
-            disabled={isSaving}
             id="admin-save-settings-btn"
-            className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl transition-all disabled:opacity-50"
+            variant="primary"
+            size="md"
+            disabled={isSaving}
           >
-            <Save className="w-4 h-4" />
-            <span>{isSaving ? 'Saving Changes...' : 'Save All Settings'}</span>
-          </button>
+            {isSaving ? 'Saving…' : 'Save settings'}
+          </Button>
         </div>
       </form>
-    </div>
+    </>
   );
 }
