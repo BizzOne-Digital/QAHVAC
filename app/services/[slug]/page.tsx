@@ -1,13 +1,16 @@
 import React from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
+import { ArrowLeft } from 'lucide-react';
 import { storage } from '@/lib/storage';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { BookingWizard } from '@/components/booking/BookingWizard';
+import { PageHero } from '@/components/ui/PageHero';
+import { Section } from '@/components/ui/Section';
+import { Container } from '@/components/ui/Container';
+import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
-import { ArrowLeft, CheckCircle2, ShieldCheck, Clock, DollarSign, Wrench, PhoneCall, AlertTriangle } from 'lucide-react';
 import { Metadata } from 'next';
 import { buildMetadata } from '@/lib/seo';
 
@@ -29,6 +32,15 @@ export async function generateMetadata(
   });
 }
 
+const CATEGORY_LABEL: Record<string, string> = {
+  heating: 'Heating',
+  cooling: 'Cooling',
+  'heat-pumps': 'Heat pumps',
+  emergency: 'Emergency',
+  maintenance: 'Maintenance',
+  commercial: 'Commercial',
+};
+
 export default async function ServiceDetailPage(
   { params }: { params: Promise<{ slug: string }> }
 ) {
@@ -39,141 +51,98 @@ export default async function ServiceDetailPage(
     notFound();
   }
 
+  const eyebrow = service.emergencyAvailable
+    ? `${CATEGORY_LABEL[service.category] ?? 'Service'} · 24/7 dispatch`
+    : CATEGORY_LABEL[service.category] ?? 'Service';
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Breadcrumb Back Link */}
-          <div className="mb-8">
+      <main className="flex-1">
+        {/* The service's own photograph carries its hero. */}
+        <PageHero
+          eyebrow={eyebrow}
+          title={service.title}
+          lead={service.shortDesc}
+          imageSrc={service.image}
+          imageAlt={service.title}
+          imagePosition="60% 50%"
+          actions={
+            <>
+              <Button href={`/booking?service=${encodeURIComponent(service.title)}`} variant="inverse" size="lg">
+                Book this service
+              </Button>
+              <Button href={`tel:${APP_CONFIG.phone}`} variant="outline-inverse" size="lg">
+                Call {APP_CONFIG.phoneDisplay}
+              </Button>
+            </>
+          }
+          meta={[
+            { label: 'Price guide', value: service.priceEstimate, note: 'Exact quote before work begins' },
+            { label: 'Typical duration', value: service.durationEstimate, note: '30-minute arrival call-ahead' },
+          ]}
+        />
+
+        <Section tone="canvas">
+          <Container>
             <Link
               href="/services"
-              className="inline-flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 type-meta text-ink-3 hover:text-ink transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Back to All Services
+              <ArrowLeft className="w-3.5 h-3.5" strokeWidth={1.75} />
+              All services
             </Link>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-            {/* Left Column: Service Details */}
-            <div className="lg:col-span-7 space-y-8">
-              <div>
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="px-3 py-1 rounded-full bg-blue-950 border border-blue-800 text-blue-400 text-xs font-bold uppercase tracking-wider">
-                    {service.category.replace('-', ' ')}
-                  </span>
-                  {service.emergencyAvailable && (
-                    <span className="px-3 py-1 rounded-full bg-red-950 border border-red-800 text-red-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1">
-                      <AlertTriangle className="w-3.5 h-3.5" />
-                      24/7 Rapid Response
-                    </span>
-                  )}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-16 gap-x-16 items-start mt-12">
+              {/* Detail */}
+              <div className="lg:col-span-7">
+                <p className="type-lead text-ink max-w-[36rem]">{service.fullDesc}</p>
+
+                <div className="mt-14">
+                  <h2 className="type-label text-ink-3">What the visit includes</h2>
+                  <ul className="mt-6 border-t border-line">
+                    {service.features.map((feature) => (
+                      <li key={feature} className="type-body text-ink py-4 border-b border-line">
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
 
-                <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight leading-tight">
-                  {service.title}
-                </h1>
-                <p className="text-sm sm:text-base text-slate-300 mt-4 leading-relaxed">
-                  {service.fullDesc}
+                <p className="type-small text-ink-2 mt-12 border-l-2 border-line-strong pl-5 max-w-[34rem]">
+                  <span className="font-semibold text-ink">Our workmanship guarantee.</span> Parts and
+                  replacement units carry full manufacturer warranty protection alongside our own guarantee on
+                  the work. If something is not running right, Jayson returns and makes it right.
                 </p>
               </div>
 
-              {/* Service Hero Image */}
-              <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-slate-800 shadow-2xl bg-slate-900">
-                <Image
-                  src={service.image}
-                  alt={service.title}
-                  fill
-                  priority
-                  referrerPolicy="no-referrer"
-                  className="object-cover"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent" />
-              </div>
-
-              {/* Specs & Features Checklist */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8">
-                <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                  <Wrench className="w-5 h-5 text-blue-400" />
-                  What Our Craftsman Service Includes
-                </h3>
-                <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 text-xs text-slate-300">
-                  {service.features.map((feat, idx) => (
-                    <li key={idx} className="flex items-start gap-2.5">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0 mt-0.5" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Upfront Pricing Transparency */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
-                    <DollarSign className="w-4 h-4 text-emerald-400" />
-                    Upfront Pricing Guide
-                  </div>
-                  <div className="text-white font-black text-base">{service.priceEstimate}</div>
-                  <p className="text-[11px] text-slate-400 mt-1">Exact quote provided prior to performing work.</p>
-                </div>
-
-                <div className="p-5 rounded-2xl bg-slate-900 border border-slate-800">
-                  <div className="flex items-center gap-2 text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">
-                    <Clock className="w-4 h-4 text-blue-400" />
-                    Estimated Duration
-                  </div>
-                  <div className="text-white font-black text-base">{service.durationEstimate}</div>
-                  <p className="text-[11px] text-slate-400 mt-1">We call 30 minutes before arrival.</p>
-                </div>
-              </div>
-
-              {/* Father & Son Guarantee Card */}
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-slate-900 to-slate-950 border border-blue-900/50 flex items-start gap-4">
-                <ShieldCheck className="w-8 h-8 text-blue-400 flex-shrink-0" />
-                <div>
-                  <h4 className="text-white font-bold text-sm">Personal Father & Son Warranty</h4>
-                  <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    We stand behind all repair parts and replacement units with manufacturer warranty protection plus our 100% craftsmanship guarantee. If something isn&apos;t running right, Jayson will personally return and make it right.
+              {/* Booking */}
+              <div className="lg:col-span-5 lg:sticky lg:top-32">
+                <div className="border-t-2 border-ink pt-8">
+                  <h2 className="type-h3 text-ink">Schedule this service</h2>
+                  <p className="type-small text-ink-2 mt-2">
+                    Booked directly with Jayson, who confirms your arrival window by phone.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Right Column: Direct Appointment Booking Scheduler */}
-            <div className="lg:col-span-5">
-              <div className="sticky top-28 space-y-6">
-                <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-2xl">
-                  <div className="border-b border-slate-800 pb-4 mb-6">
-                    <span className="text-xs font-bold uppercase tracking-wider text-blue-400">Instant Dispatch Scheduling</span>
-                    <h3 className="text-xl font-bold text-white mt-1">Schedule This Service</h3>
-                    <p className="text-xs text-slate-400 mt-0.5">Quick booking directly with Jayson.</p>
-                  </div>
-
-                  {/* Pre-fill with this service name */}
-                  <BookingWizard initialService={service.title} />
+                <div className="mt-8">
+                  <BookingWizard initialService={service.title} frameless />
                 </div>
 
-                {/* Direct Call Fallback */}
-                <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs text-slate-400 block font-medium">Prefer to talk directly?</span>
-                    <span className="text-white font-bold text-sm">Call Jayson anytime</span>
-                  </div>
+                <p className="type-small text-ink-2 mt-8">
+                  Prefer to talk it through?{' '}
                   <a
                     href={`tel:${APP_CONFIG.phone}`}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-colors"
+                    className="font-semibold text-ink underline underline-offset-[3px] decoration-line-strong hover:decoration-ink"
                   >
-                    <PhoneCall className="w-3.5 h-3.5" />
-                    {APP_CONFIG.phoneDisplay}
+                    Call {APP_CONFIG.phoneDisplay}
                   </a>
-                </div>
+                </p>
               </div>
             </div>
-          </div>
-        </div>
+          </Container>
+        </Section>
       </main>
 
       <Footer />

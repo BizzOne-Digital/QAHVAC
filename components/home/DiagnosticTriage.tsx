@@ -1,9 +1,19 @@
 'use client';
 
 import React, { useState } from 'react';
-import Link from 'next/link';
-import { Wrench, AlertCircle, ArrowRight, CheckCircle2, PhoneCall, Sparkles } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
+import { Section } from '@/components/ui/Section';
+import { Container } from '@/components/ui/Container';
+import { SectionHeading } from '@/components/ui/SectionHeading';
+import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
+
+/** Urgency reads through the one reserved colour and through weight — never through a rainbow. */
+function urgencyClass(urgency: string) {
+  if (urgency.includes('Urgent')) return 'text-urgent';
+  if (urgency.includes('Moderate')) return 'text-ink';
+  return 'text-ink-3';
+}
 
 interface IssueOption {
   id: string;
@@ -79,115 +89,83 @@ export function DiagnosticTriage() {
   const [selectedIssue, setSelectedIssue] = useState<IssueOption>(COMMON_ISSUES[0]);
 
   return (
-    <section id="hvac-diagnostic-triage-tool" className="py-20 bg-[#090b12] border-b border-white/[0.08] relative">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center max-w-3xl mx-auto mb-14">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-zinc-900 border border-white/10 text-zinc-300 text-xs font-semibold tracking-wider uppercase mb-3">
-            <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-            Interactive Climate Diagnostics
-          </span>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white font-display tracking-tight">
-            What is Your Climate System Experiencing?
-          </h2>
-          <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-xl mx-auto">
-            Select a common symptom below to view honest technical triage, urgency ratings, and craftsman guidance.
-          </p>
-        </div>
+    <Section id="hvac-diagnostic-triage-tool" tone="canvas" divide>
+      <Container>
+        <SectionHeading
+          eyebrow="Symptom triage"
+          title="What is your system doing?"
+          lead="Choose the symptom that sounds closest to yours for an honest read on the likely cause, how urgent it is, and what we would do next."
+        />
 
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-          {/* Symptoms List */}
-          <div className="lg:col-span-6 space-y-3">
-            {COMMON_ISSUES.map((issue) => {
-              const isSelected = selectedIssue.id === issue.id;
-              return (
-                <button
-                  key={issue.id}
-                  type="button"
-                  onClick={() => setSelectedIssue(issue)}
-                  className={`w-full text-left p-4.5 rounded-xl border transition-all duration-200 ${
-                    isSelected
-                      ? 'bg-zinc-900 border-white/30 shadow-xl ring-1 ring-white/10'
-                      : 'bg-zinc-950/60 border-white/[0.06] hover:border-white/15 hover:bg-zinc-900/60'
-                  }`}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-10 gap-x-16 mt-16 lg:mt-20 items-start">
+          {/* Symptom list */}
+          <div className="lg:col-span-5">
+            <ul className="border-t border-line" role="tablist" aria-label="Common symptoms">
+              {COMMON_ISSUES.map((issue) => {
+                const isSelected = selectedIssue.id === issue.id;
+                return (
+                  <li key={issue.id} className="border-b border-line">
+                    <button
+                      type="button"
+                      role="tab"
+                      aria-selected={isSelected}
+                      onClick={() => setSelectedIssue(issue)}
+                      className={`group w-full text-left py-5 pl-4 -ml-4 border-l-2 transition-colors duration-200 ${
+                        isSelected ? 'border-ink' : 'border-transparent hover:border-line-strong'
+                      }`}
+                    >
+                      <span className={`type-h4 block ${isSelected ? 'text-ink' : 'text-ink-2 group-hover:text-ink'}`}>
+                        {issue.title}
+                      </span>
+                      <span className={`type-label block mt-2.5 ${urgencyClass(issue.urgency)}`}>
+                        {issue.urgency}
+                      </span>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+
+          {/* Reading */}
+          <div className="lg:col-span-7 lg:sticky lg:top-32">
+            <div className="bg-surface border border-line p-8 sm:p-10">
+              <div className="flex items-baseline justify-between gap-6 pb-6 border-b border-line">
+                <span className="type-label text-ink-3">Diagnostic reading</span>
+                <span className={`type-label ${urgencyClass(selectedIssue.urgency)}`}>{selectedIssue.urgency}</span>
+              </div>
+
+              <h3 className="type-h2 text-ink mt-8">{selectedIssue.title}</h3>
+              <p className="type-body text-ink-3 mt-4 type-italic-serif">{selectedIssue.symptom}</p>
+
+              <dl className="mt-10 space-y-8">
+                <div>
+                  <dt className="type-label text-ink-3">Likely mechanical cause</dt>
+                  <dd className="type-body text-ink mt-3">{selectedIssue.diagnosis}</dd>
+                </div>
+                <div>
+                  <dt className="type-label text-ink-3">What we would do</dt>
+                  <dd className="type-body text-ink mt-3">{selectedIssue.recommendedAction}</dd>
+                </div>
+              </dl>
+
+              <div className="mt-10 pt-8 border-t border-line flex flex-col sm:flex-row sm:items-center gap-3">
+                <Button
+                  href={`/booking?service=${encodeURIComponent(selectedIssue.targetService)}`}
+                  variant="primary"
+                  size="md"
                 >
-                  <div className="flex items-center justify-between gap-3">
-                    <span className={`font-bold text-xs sm:text-sm font-display ${isSelected ? 'text-white' : 'text-zinc-300'}`}>
-                      {issue.title}
-                    </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded border uppercase tracking-wider flex-shrink-0 ${
-                      issue.urgency.includes('Urgent')
-                        ? 'bg-rose-500/10 text-rose-300 border-rose-500/30'
-                        : issue.urgency.includes('Moderate')
-                        ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
-                        : 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                    }`}>
-                      {issue.urgency}
-                    </span>
-                  </div>
-                  <p className="text-xs text-zinc-400 mt-2 line-clamp-1">{issue.symptom}</p>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Detailed Diagnosis & Direct Action Card */}
-          <div className="lg:col-span-6 bg-zinc-950 border border-white/10 rounded-2xl p-6 sm:p-8 shadow-2xl relative">
-            <div className="flex items-center justify-between pb-4 border-b border-white/[0.08] mb-6">
-              <div className="flex items-center gap-2 text-sky-400 text-xs font-bold uppercase tracking-wider font-display">
-                <Wrench className="w-4 h-4" />
-                Master Diagnostic Evaluation
+                  Book service for this issue
+                  <ArrowRight className="w-3.5 h-3.5" strokeWidth={1.75} />
+                </Button>
+                <Button href={`tel:${APP_CONFIG.phone}`} variant="secondary" size="md">
+                  Call Jayson · {APP_CONFIG.phoneDisplay}
+                </Button>
               </div>
-              <span className={`text-[10px] font-bold px-2.5 py-1 rounded border uppercase tracking-wider ${
-                selectedIssue.urgency.includes('Urgent')
-                  ? 'bg-rose-500/15 text-rose-300 border-rose-500/30'
-                  : selectedIssue.urgency.includes('Moderate')
-                  ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-                  : 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
-              }`}>
-                {selectedIssue.urgency}
-              </span>
-            </div>
-
-            <h3 className="text-lg sm:text-xl font-bold text-white font-display mb-2">{selectedIssue.title}</h3>
-            <p className="text-xs text-zinc-400 mb-6 italic">&quot;{selectedIssue.symptom}&quot;</p>
-
-            <div className="space-y-4 text-xs">
-              <div className="p-4 rounded-xl bg-zinc-900/90 border border-white/[0.08]">
-                <span className="text-zinc-400 font-bold uppercase tracking-wider block text-[10px] mb-1.5 font-display">
-                  Likely Mechanical Cause:
-                </span>
-                <p className="text-zinc-200 leading-relaxed font-medium">{selectedIssue.diagnosis}</p>
-              </div>
-
-              <div className="p-4 rounded-xl bg-zinc-900/60 border border-white/[0.08]">
-                <span className="text-sky-400 font-bold uppercase tracking-wider block text-[10px] mb-1.5 font-display">
-                  Father & Son Craftsman Recommendation:
-                </span>
-                <p className="text-zinc-300 leading-relaxed">{selectedIssue.recommendedAction}</p>
-              </div>
-            </div>
-
-            {/* Direct Booking CTA from Diagnostic */}
-            <div className="mt-8 pt-6 border-t border-white/[0.08] flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-              <Link
-                href={`/booking?service=${encodeURIComponent(selectedIssue.targetService)}`}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-bold text-xs shadow-md transition-all active:scale-[0.98]"
-              >
-                <span>Book Service For This Issue</span>
-                <ArrowRight className="w-3.5 h-3.5 text-zinc-900" />
-              </Link>
-
-              <a
-                href={`tel:${APP_CONFIG.phone}`}
-                className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-zinc-200 font-semibold text-xs border border-white/10 hover:border-white/20 transition-all"
-              >
-                <PhoneCall className="w-3.5 h-3.5 text-rose-400" />
-                Call Jayson Direct: {APP_CONFIG.phoneDisplay}
-              </a>
             </div>
           </div>
         </div>
-      </div>
-    </section>
+      </Container>
+    </Section>
   );
 }

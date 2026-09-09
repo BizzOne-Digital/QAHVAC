@@ -3,9 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Phone, Calendar, Menu, X, ShieldCheck, Flame, Snowflake, Clock } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { BrandLogo } from '@/components/ui/BrandLogo';
+import { Container } from '@/components/ui/Container';
+import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
+
+const NAV_LINKS = [
+  { name: 'Services', href: '/services' },
+  { name: 'About', href: '/about' },
+  { name: 'Contact', href: '/contact' },
+];
 
 export function Navbar() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -13,10 +21,9 @@ export function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 20);
-    };
-    window.addEventListener('scroll', handleScroll);
+    const handleScroll = () => setIsScrolled(window.scrollY > 24);
+    handleScroll();
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
@@ -25,174 +32,134 @@ export function Navbar() {
     setMobileMenuOpen(false);
   }, [pathname]);
 
-  const navLinks = [
-    { name: 'Home', href: '/' },
-    { name: 'Services', href: '/services' },
-    { name: 'About Us', href: '/about' },
-    { name: 'Contact', href: '/contact' },
-  ];
+  // The drawer covers the viewport, so the page beneath must not scroll.
+  useEffect(() => {
+    document.body.style.overflow = mobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [mobileMenuOpen]);
+
+  /* Every page opens on a dark photographic hero, so the header starts
+     transparent and resolves to paper once the visitor scrolls past it. */
+  const solid = isScrolled || mobileMenuOpen;
 
   return (
-    <header className="sticky top-0 z-50 w-full transition-all duration-300">
-      {/* Top micro-bar for credibility & hours */}
-      <div className="bg-zinc-950 text-zinc-300 text-xs py-2 px-4 border-b border-white/[0.06] hidden md:block">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-5 text-[11px] font-medium tracking-wide">
-            <span className="flex items-center gap-1.5 text-zinc-300">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <ShieldCheck className="w-3.5 h-3.5 text-sky-400" />
-              Licensed Gas & Refrigeration Master Technicians
-            </span>
-            <span className="text-zinc-600">|</span>
-            <span className="flex items-center gap-1.5 text-zinc-400">
-              <Flame className="w-3.5 h-3.5 text-rose-400" />
-              Heating
-              <span className="text-zinc-600">/</span>
-              <Snowflake className="w-3.5 h-3.5 text-sky-400" />
-              Cooling
-              <span className="text-zinc-600">/</span>
-              Heat Pumps
-            </span>
-          </div>
+    <header
+      className={`sticky top-0 z-50 transition-colors duration-300 ${
+        solid ? 'bg-canvas/92 backdrop-blur-md border-b border-line' : 'bg-transparent border-b border-transparent'
+      }`}
+    >
+      <Container>
+        <div className="h-[4.75rem] flex items-center justify-between gap-8">
+          <BrandLogo variant={solid ? 'dark' : 'light'} showSubtitle={false} />
 
-          <div className="flex items-center gap-5 text-[11px]">
-            <span className="flex items-center gap-1.5 text-zinc-400">
-              <Clock className="w-3.5 h-3.5 text-zinc-500" />
-              Mon-Sun: 7am - 8pm <span className="text-zinc-600">•</span> <span className="text-rose-400 font-semibold">24/7 Rapid Emergency Dispatch</span>
-            </span>
-            <span className="text-zinc-700">|</span>
-            <Link
-              href="/admin/login"
-              id="header-admin-link"
-              className="text-zinc-500 hover:text-zinc-300 transition-colors uppercase tracking-wider text-[10px] font-bold"
-            >
-              Technician Portal
-            </Link>
-          </div>
-        </div>
-      </div>
-
-      {/* Main navigation container */}
-      <nav
-        id="main-navigation"
-        className={`w-full transition-all duration-300 ${
-          isScrolled
-            ? 'bg-zinc-950/90 backdrop-blur-xl shadow-2xl border-b border-white/[0.08]'
-            : 'bg-zinc-950/70 backdrop-blur-md border-b border-white/[0.05]'
-        }`}
-      >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
-          {/* Logo */}
-          <BrandLogo variant="light" />
-
-          {/* Desktop Nav Items */}
-          <div className="hidden md:flex items-center gap-1 bg-zinc-900/60 p-1.5 rounded-full border border-white/[0.08]">
-            {navLinks.map((link) => {
-              const isActive = pathname === link.href;
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-9">
+            {NAV_LINKS.map((link) => {
+              const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
               return (
                 <Link
                   key={link.name}
                   href={link.href}
-                  id={`nav-link-${link.name.toLowerCase().replace(/\s+/g, '-')}`}
-                  className={`text-xs font-semibold tracking-wide px-4 py-1.5 rounded-full transition-all ${
-                    isActive
-                      ? 'bg-white text-zinc-950 shadow-sm'
-                      : 'text-zinc-300 hover:text-white hover:bg-white/[0.05]'
+                  id={`nav-link-${link.name.toLowerCase()}`}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`relative text-sm font-medium py-1 transition-colors ${
+                    solid
+                      ? isActive
+                        ? 'text-ink'
+                        : 'text-ink-2 hover:text-ink'
+                      : isActive
+                      ? 'text-white'
+                      : 'text-white/70 hover:text-white'
                   }`}
                 >
                   {link.name}
+                  {isActive && (
+                    <span
+                      aria-hidden
+                      className={`absolute -bottom-0.5 left-0 right-0 h-px ${solid ? 'bg-ink' : 'bg-white'}`}
+                    />
+                  )}
                 </Link>
               );
             })}
-          </div>
+          </nav>
 
-          {/* Desktop Actions (Call + Booking CTA) */}
-          <div className="hidden lg:flex items-center gap-3.5">
+          <div className="hidden md:flex items-center gap-6">
             <a
               href={`tel:${APP_CONFIG.phone}`}
               id="nav-direct-call-btn"
-              className="flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-zinc-900/80 hover:bg-zinc-800 text-zinc-100 border border-white/[0.08] hover:border-white/20 transition-all text-xs font-medium"
+              className={`text-sm font-medium transition-colors ${
+                solid ? 'text-ink-2 hover:text-ink' : 'text-white/70 hover:text-white'
+              }`}
             >
-              <div className="w-6 h-6 rounded-lg bg-rose-500/15 text-rose-400 flex items-center justify-center">
-                <Phone className="w-3 h-3" />
-              </div>
-              <div className="text-left leading-none">
-                <div className="text-[9px] text-zinc-400 uppercase font-bold tracking-wider">Direct to Jayson</div>
-                <div className="font-bold text-white tracking-tight text-xs mt-0.5">{APP_CONFIG.phoneDisplay}</div>
-              </div>
+              {APP_CONFIG.phoneDisplay}
             </a>
 
-            <Link
+            <Button
               href="/booking"
               id="nav-book-appointment-btn"
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white hover:bg-zinc-100 text-zinc-950 font-bold text-xs tracking-tight shadow-md hover:shadow-white/10 transition-all active:scale-[0.98]"
+              variant={solid ? 'primary' : 'inverse'}
+              size="sm"
             >
-              <Calendar className="w-3.5 h-3.5 text-zinc-900" />
-              <span>Book Service</span>
-            </Link>
+              Book service
+            </Button>
           </div>
 
-          {/* Mobile menu trigger */}
-          <div className="flex items-center gap-2 md:hidden">
-            <a
-              href={`tel:${APP_CONFIG.phone}`}
-              aria-label="Call Jayson"
-              className="p-2.5 rounded-xl bg-zinc-900 text-rose-400 border border-white/10"
-            >
-              <Phone className="w-4 h-4" />
-            </a>
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              id="mobile-menu-toggle-btn"
-              aria-label="Toggle navigation menu"
-              className="p-2.5 rounded-xl bg-zinc-900 text-zinc-200 border border-white/10 hover:text-white"
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-          </div>
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            id="mobile-menu-toggle-btn"
+            aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileMenuOpen}
+            className={`md:hidden -mr-2 p-2 transition-colors ${solid ? 'text-ink' : 'text-white'}`}
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" strokeWidth={1.5} /> : <Menu className="w-5 h-5" strokeWidth={1.5} />}
+          </button>
         </div>
+      </Container>
 
-        {/* Mobile menu dropdown */}
-        {mobileMenuOpen && (
-          <div id="mobile-navigation-drawer" className="md:hidden bg-zinc-950 border-b border-white/10 px-5 pt-3 pb-6 space-y-3">
-            <div className="flex flex-col space-y-1">
-              {navLinks.map((link) => {
-                const isActive = pathname === link.href;
+      {mobileMenuOpen && (
+        <div
+          id="mobile-navigation-drawer"
+          className="md:hidden absolute top-full left-0 right-0 h-[calc(100dvh-4.75rem)] bg-canvas border-t border-line overflow-y-auto"
+        >
+          <Container className="py-10 flex flex-col min-h-full">
+            <nav aria-label="Mobile" className="flex flex-col">
+              <Link
+                href="/"
+                className={`type-h2 py-3 border-b border-line ${pathname === '/' ? 'text-ink' : 'text-ink-2'}`}
+              >
+                Home
+              </Link>
+              {NAV_LINKS.map((link) => {
+                const isActive = pathname === link.href || pathname.startsWith(`${link.href}/`);
                 return (
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all ${
-                      isActive
-                        ? 'bg-white text-zinc-950 font-bold'
-                        : 'text-zinc-300 hover:bg-zinc-900'
-                    }`}
+                    className={`type-h2 py-3 border-b border-line ${isActive ? 'text-ink' : 'text-ink-2'}`}
                   >
                     {link.name}
                   </Link>
                 );
               })}
-            </div>
+            </nav>
 
-            <div className="pt-3 border-t border-white/[0.08] space-y-2">
-              <a
-                href={`tel:${APP_CONFIG.phone}`}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-zinc-900 text-white font-bold border border-white/10 text-xs"
-              >
-                <Phone className="w-4 h-4 text-rose-400" />
-                Call Jayson: {APP_CONFIG.phoneDisplay}
-              </a>
-              <Link
-                href="/booking"
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-zinc-950 font-bold text-xs"
-              >
-                <Calendar className="w-4 h-4" />
-                Book Service Appointment
-              </Link>
+            <div className="mt-auto pt-12 space-y-3">
+              <Button href="/booking" variant="primary" size="lg" fullWidth>
+                Book service appointment
+              </Button>
+              <Button href={`tel:${APP_CONFIG.phone}`} variant="secondary" size="lg" fullWidth>
+                Call {APP_CONFIG.phoneDisplay}
+              </Button>
+              <p className="type-meta text-ink-3 pt-4">
+                Mon–Fri 7am–8pm · Sat 8am–6pm · Sun 9am–4pm.{' '}
+                <span className="text-urgent font-semibold">24/7 emergency dispatch.</span>
+              </p>
             </div>
-          </div>
-        )}
-      </nav>
+          </Container>
+        </div>
+      )}
     </header>
   );
 }

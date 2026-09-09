@@ -7,59 +7,59 @@ interface BrandLogoProps {
   showSubtitle?: boolean;
 }
 
+/**
+ * Two converging thermal curves — heating and cooling meeting at a single point.
+ * Monochrome, so the mark inherits the surface it sits on rather than
+ * introducing another colour to the page.
+ */
 export function BrandLogo({ className = '', variant = 'dark', showSubtitle = true }: BrandLogoProps) {
   const isLight = variant === 'light';
 
   return (
-    <Link href="/" className={`inline-flex items-center gap-3.5 group select-none ${className}`} id="qp-hvac-brand-logo">
-      {/* Precision Engineered HVAC Emblem */}
-      <div className="relative w-11 h-11 rounded-xl bg-zinc-950/90 flex items-center justify-center p-2.5 shadow-lg border border-white/10 group-hover:border-white/25 transition-all duration-300">
-        <svg viewBox="0 0 48 48" fill="none" className="w-full h-full transform group-hover:scale-105 transition-transform duration-300">
-          {/* Dual Thermal Convergence Curves */}
-          <path
-            d="M24 7 C16 14, 11 21, 11 29 C11 37, 17 42, 24 42"
-            stroke="#38BDF8"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          <path
-            d="M24 7 C32 14, 37 21, 37 29 C37 37, 31 42, 24 42"
-            stroke="#F43F5E"
-            strokeWidth="3"
-            strokeLinecap="round"
-          />
-          {/* Central Precision Core Indicator */}
-          <circle cx="24" cy="27" r="4" fill="#FFFFFF" />
-          <path
-            d="M24 16 L24 20 M24 34 L24 38 M13 27 L17 27 M31 27 L35 27"
-            stroke="#94A3B8"
-            strokeWidth="1.75"
-            strokeLinecap="round"
-          />
-        </svg>
-        {/* Discrete Micro Status Pip */}
-        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-zinc-950 shadow-sm" title="24/7 Dispatch Ready" />
-      </div>
+    <Link
+      href="/"
+      id="qp-hvac-brand-logo"
+      aria-label="QP HVAC — home"
+      className={`inline-flex items-center gap-3 select-none group ${className}`}
+    >
+      <svg
+        viewBox="0 0 40 40"
+        fill="none"
+        aria-hidden
+        className={`w-8 h-8 flex-shrink-0 ${isLight ? 'text-white' : 'text-ink'}`}
+      >
+        <path
+          d="M20 4C12.5 10 8.5 16 8.5 23c0 6.6 5.1 11.5 11.5 11.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="square"
+        />
+        <path
+          d="M20 4c7.5 6 11.5 12 11.5 19 0 6.6-5.1 11.5-11.5 11.5"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="square"
+          opacity="0.42"
+        />
+        <circle cx="20" cy="22" r="2.75" fill="currentColor" />
+      </svg>
 
-      {/* Brand Wordmark & Heritage Subtitle */}
-      <div className="flex flex-col">
-        <div className="flex items-baseline gap-1.5">
-          <span className={`text-xl sm:text-2xl font-black tracking-tight font-display ${isLight ? 'text-white' : 'text-zinc-900'}`}>
-            QP
-          </span>
-          <span className="text-xl sm:text-2xl font-black tracking-tight font-display text-sky-400">
-            HVAC
-          </span>
-          <span className="text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 border border-white/10 ml-1">
-            EST.
-          </span>
-        </div>
+      <span className="flex flex-col leading-none">
+        <span
+          className={`font-display text-[1.4rem] tracking-[-0.02em] ${isLight ? 'text-white' : 'text-ink'}`}
+        >
+          QP HVAC
+        </span>
         {showSubtitle && (
-          <span className={`text-[10px] tracking-[0.18em] uppercase font-semibold -mt-0.5 ${isLight ? 'text-zinc-400' : 'text-zinc-500'}`}>
-            Father & Son Craftsmanship
+          <span
+            className={`text-[0.625rem] font-semibold uppercase tracking-[0.18em] mt-1.5 ${
+              isLight ? 'text-white/45' : 'text-ink-3'
+            }`}
+          >
+            Heating &amp; Cooling
           </span>
         )}
-      </div>
+      </span>
     </Link>
   );
 }

@@ -1,31 +1,30 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import {
-  Calendar,
-  Clock,
-  Home,
-  Building2,
-  AlertCircle,
-  CheckCircle2,
-  ChevronRight,
-  ChevronLeft,
-  Flame,
-  Snowflake,
-  ShieldCheck,
-  PhoneCall,
-  Wrench,
-  Sparkles
-} from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check } from 'lucide-react';
 import { PropertyType, BookingUrgency } from '@/types';
 import { APP_CONFIG } from '@/lib/config';
+import { Button } from '@/components/ui/Button';
 
 interface BookingWizardProps {
   initialService?: string;
   onSuccess?: (referenceNumber: string) => void;
+  /** Drops the surrounding panel when the page already provides one, e.g. a sidebar. */
+  frameless?: boolean;
 }
 
-export function BookingWizard({ initialService = 'High-Efficiency Furnace & Heating Systems' }: BookingWizardProps) {
+const STEP_TITLES = [
+  'Select service',
+  'System details',
+  'Date & window',
+  'Contact & location',
+];
+
+export function BookingWizard({
+  initialService = 'High-Efficiency Furnace & Heating Systems',
+  frameless = false,
+}: BookingWizardProps) {
+  const frame = frameless ? '' : 'bg-surface border border-line p-6 sm:p-10 lg:p-12 max-w-[52rem] mx-auto';
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -64,51 +63,33 @@ export function BookingWizard({ initialService = 'High-Efficiency Furnace & Heat
   const availableServices = [
     {
       name: 'High-Efficiency Furnace & Heating Systems',
-      category: 'heating',
-      icon: Flame,
-      color: 'text-red-500',
-      badge: 'Winter Warmth',
-      desc: 'No-heat diagnosis, burner repair, safety inspection & replacements',
+      note: 'Winter warmth',
+      desc: 'No-heat diagnosis, burner repair, safety inspection and replacements',
     },
     {
       name: 'Precision Air Conditioning & Central Air',
-      category: 'cooling',
-      icon: Snowflake,
-      color: 'text-blue-500',
-      badge: 'Summer Cooling',
+      note: 'Summer cooling',
       desc: 'Refrigerant leak detection, coil cleaning, condenser replacement',
     },
     {
       name: 'Cold-Climate Heat Pumps & Ductless Mini-Splits',
-      category: 'heat-pump',
-      icon: Sparkles,
-      color: 'text-emerald-500',
-      badge: 'High Rebate Eligible',
+      note: 'Rebate eligible',
       desc: 'Year-round dual climate, cold-climate inverter installations',
     },
     {
       name: '24/7 Rapid Emergency Heating & Cooling Dispatch',
-      category: 'emergency',
-      icon: AlertCircle,
-      color: 'text-red-600',
-      badge: 'Urgent Same-Day',
-      desc: 'Immediate emergency restoration for complete climate failures',
+      note: 'Same day',
+      desc: 'Immediate restoration for complete climate failures',
     },
     {
       name: '21-Point Seasonal HVAC Tune-Up & Safety Audit',
-      category: 'maintenance',
-      icon: Wrench,
-      color: 'text-amber-500',
-      badge: '$129 Special',
-      desc: 'Prevent sudden breakdowns, clean electrical contacts, optimize airflow',
+      note: '$129 special',
+      desc: 'Prevent breakdowns, clean electrical contacts, optimise airflow',
     },
     {
       name: 'Commercial HVAC & Light Industrial Solutions',
-      category: 'commercial',
-      icon: Building2,
-      color: 'text-slate-400',
-      badge: 'Business Priority',
-      desc: 'Rooftop RTU package units, commercial maintenance agreements',
+      note: 'Business priority',
+      desc: 'Rooftop package units and commercial maintenance agreements',
     },
   ];
 
@@ -211,497 +192,451 @@ export function BookingWizard({ initialService = 'High-Efficiency Furnace & Heat
     }
   };
 
-  // Success Confirmation Screen
+  /* ---------------------------------------------------------------- Success */
+
   if (bookingSuccess) {
     return (
-      <div id="booking-success-card" className="bg-slate-900 border border-slate-800 rounded-2xl p-8 sm:p-10 shadow-2xl text-center max-w-2xl mx-auto">
-        <div className="w-16 h-16 bg-emerald-950/80 border border-emerald-500/30 text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6">
-          <CheckCircle2 className="w-9 h-9" />
-        </div>
+      <div
+        id="booking-success-card"
+        className={frameless ? '' : 'bg-surface border border-line p-8 sm:p-12 max-w-[52rem] mx-auto'}
+      >
+        <span className="type-label text-ink-3">Request received</span>
 
-        <span className="text-xs font-bold uppercase tracking-widest text-emerald-400 bg-emerald-950 px-3 py-1 rounded-full border border-emerald-800">
-          Request Confirmed & Dispatched
-        </span>
+        <h3 className="type-h2 text-ink mt-5">Thank you, {bookingSuccess.customerName}.</h3>
 
-        <h3 className="text-2xl sm:text-3xl font-black text-white mt-4 tracking-tight">
-          Thank You, {bookingSuccess.customerName}
-        </h3>
-
-        <p className="text-slate-300 text-sm mt-2 max-w-md mx-auto">
-          Your appointment request has been securely logged in our dispatch schedule. Jayson or our team will review the details and reach out to confirm arrival time.
+        <p className="type-body text-ink-2 mt-5 max-w-[36rem]">
+          Your appointment request is logged in our dispatch schedule. Jayson will review the details and
+          call you to confirm the arrival time.
         </p>
 
-        {/* Reference summary box */}
-        <div className="bg-slate-950 rounded-xl p-5 my-6 border border-slate-800 text-left grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-          <div>
-            <span className="text-slate-500 font-medium uppercase tracking-wider block text-[10px]">Reference Number</span>
-            <span className="text-blue-400 font-mono font-bold text-base">{bookingSuccess.referenceNumber}</span>
+        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-10 mt-10 border-t border-line">
+          <div className="py-5 border-b border-line">
+            <dt className="type-label text-ink-3">Reference</dt>
+            <dd className="type-h4 text-ink mt-2 font-mono tracking-tight">{bookingSuccess.referenceNumber}</dd>
           </div>
-          <div>
-            <span className="text-slate-500 font-medium uppercase tracking-wider block text-[10px]">Requested Date</span>
-            <span className="text-white font-semibold text-sm">{bookingSuccess.preferredDate}</span>
+          <div className="py-5 border-b border-line">
+            <dt className="type-label text-ink-3">Requested date</dt>
+            <dd className="type-h4 text-ink mt-2">{bookingSuccess.preferredDate}</dd>
           </div>
-          <div>
-            <span className="text-slate-500 font-medium uppercase tracking-wider block text-[10px]">Window</span>
-            <span className="text-slate-200 font-medium">{bookingSuccess.preferredTimeSlot}</span>
+          <div className="py-5 border-b border-line">
+            <dt className="type-label text-ink-3">Arrival window</dt>
+            <dd className="type-small text-ink mt-2">{bookingSuccess.preferredTimeSlot}</dd>
           </div>
-          <div>
-            <span className="text-slate-500 font-medium uppercase tracking-wider block text-[10px]">Service</span>
-            <span className="text-slate-200 font-medium truncate block">{bookingSuccess.serviceName}</span>
+          <div className="py-5 border-b border-line">
+            <dt className="type-label text-ink-3">Service</dt>
+            <dd className="type-small text-ink mt-2">{bookingSuccess.serviceName}</dd>
           </div>
-        </div>
+        </dl>
 
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-2">
-          <a
+        <div className="mt-10 flex flex-col sm:flex-row gap-3">
+          <Button
             href={`tel:${APP_CONFIG.phone}`}
             id="success-call-jayson-btn"
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-md transition-all"
+            variant="primary"
+            size="md"
           >
-            <PhoneCall className="w-4 h-4" />
-            Speak Directly with Jayson: {APP_CONFIG.phoneDisplay}
-          </a>
-          <button
+            Call Jayson · {APP_CONFIG.phoneDisplay}
+          </Button>
+          <Button
+            id="book-another-appointment-btn"
+            variant="secondary"
+            size="md"
             onClick={() => {
               setBookingSuccess(null);
               setStep(1);
             }}
-            id="book-another-appointment-btn"
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-sm transition-all"
           >
-            Book Another Visit
-          </button>
+            Book another visit
+          </Button>
         </div>
       </div>
     );
   }
 
+  /* ----------------------------------------------------------------- Wizard */
+
   return (
-    <div id="booking-appointment-wizard" className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl max-w-3xl mx-auto">
-      {/* Step Indicator Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between text-xs font-semibold text-slate-400 mb-3">
-          <span className="text-blue-400 uppercase tracking-wider">Step {step} of 4</span>
-          <span className="text-slate-300">
-            {step === 1 && 'Select HVAC Service'}
-            {step === 2 && 'System & Issue Details'}
-            {step === 3 && 'Schedule Date & Time'}
-            {step === 4 && 'Contact & Service Location'}
-          </span>
-        </div>
-        {/* Progress bar */}
-        <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-gradient-to-r from-blue-600 via-blue-500 to-red-600 transition-all duration-300 ease-out"
-            style={{ width: `${(step / 4) * 100}%` }}
-          />
-        </div>
+    <div
+      id="booking-appointment-wizard"
+      className={frame}
+    >
+      {/* Progress — four hairline segments, no gradient bar. */}
+      <div className="flex items-baseline justify-between gap-6">
+        <span className="type-label text-ink-3">
+          Step {step} of 4
+        </span>
+        <span className="type-label text-ink">{STEP_TITLES[step - 1]}</span>
+      </div>
+
+      <div className="grid grid-cols-4 gap-1.5 mt-4" aria-hidden>
+        {[1, 2, 3, 4].map((n) => (
+          <span key={n} className={`h-[2px] ${n <= step ? 'bg-ink' : 'bg-line'}`} />
+        ))}
       </div>
 
       {errorMessage && (
-        <div className="mb-6 p-4 rounded-xl bg-red-950/70 border border-red-800 text-red-200 text-xs flex items-center gap-3">
-          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-          <span>{errorMessage}</span>
-        </div>
+        <p
+          role="alert"
+          className="type-small text-urgent border-l-2 border-urgent pl-4 mt-8"
+        >
+          {errorMessage}
+        </p>
       )}
 
       {/* STEP 1: Select Service */}
       {step === 1 && (
-        <div className="space-y-5">
-          <div className="text-center sm:text-left">
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">What HVAC service do you need?</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Select your primary heating, cooling, or emergency maintenance requirement.
-            </p>
-          </div>
+        <div className="mt-10">
+          <h3 className="type-h3 text-ink">Which service do you need?</h3>
+          <p className="type-small text-ink-2 mt-2">
+            Select your primary heating, cooling or maintenance requirement.
+          </p>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 pt-2">
+          <ul className="mt-8 border-t border-line">
             {availableServices.map((svc) => {
-              const Icon = svc.icon;
               const isSelected = formData.serviceName === svc.name;
               return (
-                <button
-                  type="button"
-                  key={svc.name}
-                  onClick={() => setFormData({ ...formData, serviceName: svc.name })}
-                  className={`text-left p-4 rounded-xl border transition-all relative flex flex-col justify-between ${
-                    isSelected
-                      ? 'bg-blue-950/50 border-blue-500 shadow-lg ring-1 ring-blue-500'
-                      : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-950'
-                  }`}
-                >
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className={`p-2 rounded-lg bg-slate-900 border border-slate-800 ${svc.color}`}>
-                        <Icon className="w-4 h-4" />
-                      </div>
-                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-slate-800 text-slate-300">
-                        {svc.badge}
-                      </span>
-                    </div>
-                    <h4 className="font-bold text-sm text-white">{svc.name}</h4>
-                    <p className="text-xs text-slate-400 mt-1 line-clamp-2">{svc.desc}</p>
-                  </div>
+                <li key={svc.name} className="border-b border-line">
+                  <button
+                    type="button"
+                    onClick={() => setFormData({ ...formData, serviceName: svc.name })}
+                    aria-pressed={isSelected}
+                    className="group w-full text-left py-5 flex items-start gap-4 transition-colors"
+                  >
+                    <span
+                      className={`mt-1 w-4 h-4 flex-shrink-0 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected ? 'border-ink bg-ink text-white' : 'border-line-strong group-hover:border-ink-3'
+                      }`}
+                    >
+                      {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
+                    </span>
 
-                  <div className="mt-3 flex items-center justify-between text-xs pt-2 border-t border-slate-800/60">
-                    <span className="text-[11px] text-slate-500 font-medium">Select Service</span>
-                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-blue-500 bg-blue-500 text-white' : 'border-slate-700'}`}>
-                      {isSelected && <CheckCircle2 className="w-3 h-3" />}
-                    </div>
-                  </div>
-                </button>
+                    <span className="flex-1">
+                      <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+                        <span className={`type-h4 ${isSelected ? 'text-ink' : 'text-ink-2 group-hover:text-ink'}`}>
+                          {svc.name}
+                        </span>
+                        <span className="type-label text-ink-3">{svc.note}</span>
+                      </span>
+                      <span className="type-meta text-ink-3 block mt-1.5">{svc.desc}</span>
+                    </span>
+                  </button>
+                </li>
               );
             })}
-          </div>
+          </ul>
 
-          <div className="flex justify-end pt-4">
-            <button
-              type="button"
-              onClick={handleNext}
-              id="wizard-step1-next-btn"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all"
-            >
-              Continue to Details
-              <ChevronRight className="w-4 h-4" />
-            </button>
+          <div className="flex justify-end mt-10">
+            <Button type="button" onClick={handleNext} id="wizard-step1-next-btn" variant="primary" size="md">
+              Continue
+              <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
+            </Button>
           </div>
         </div>
       )}
 
       {/* STEP 2: Property & Issue Details */}
       {step === 2 && (
-        <div className="space-y-6">
+        <div className="mt-10 space-y-10">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">System & Property Details</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Help Jayson prepare the right diagnostic tools and replacement parts before arrival.
+            <h3 className="type-h3 text-ink">System and property details</h3>
+            <p className="type-small text-ink-2 mt-2">
+              This helps Jayson bring the right diagnostic tools and parts on the first visit.
             </p>
           </div>
 
-          {/* Property Type Radio */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              Property Type
-            </label>
+          <fieldset>
+            <legend className="field-label">Property type</legend>
             <div className="grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, propertyType: 'residential' })}
-                className={`p-3.5 rounded-xl border flex items-center justify-center gap-2.5 font-bold text-sm transition-all ${
-                  formData.propertyType === 'residential'
-                    ? 'bg-blue-950/60 border-blue-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Home className="w-4 h-4 text-blue-400" />
-                Residential Home
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setFormData({ ...formData, propertyType: 'commercial' })}
-                className={`p-3.5 rounded-xl border flex items-center justify-center gap-2.5 font-bold text-sm transition-all ${
-                  formData.propertyType === 'commercial'
-                    ? 'bg-blue-950/60 border-blue-500 text-white'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Building2 className="w-4 h-4 text-slate-300" />
-                Commercial / Facility
-              </button>
-            </div>
-          </div>
-
-          {/* Equipment Age */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              Approximate Age of Current Heating/Cooling Equipment
-            </label>
-            <select
-              value={formData.equipmentAge}
-              onChange={(e) => setFormData({ ...formData, equipmentAge: e.target.value })}
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
-            >
-              <option value="Under 5 years (Modern system)">Under 5 years (Modern system)</option>
-              <option value="5-10 years">5-10 years</option>
-              <option value="10-15 years (Aging system)">10-15 years (Aging system)</option>
-              <option value="15+ years (Near end of lifecycle)">15+ years (Near end of lifecycle)</option>
-              <option value="Unsure / Brand New Installation Needed">Unsure / Brand New Installation Needed</option>
-            </select>
-          </div>
-
-          {/* Urgency selection */}
-          <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-              Urgency Level
-            </label>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {[
-                { id: 'standard', label: 'Standard Schedule', desc: 'Upcoming scheduled visit' },
-                { id: 'emergency_today', label: 'Urgent / Same-Day', desc: 'No heat / AC failure emergency' },
-                { id: 'flexible', label: 'Flexible / Quote', desc: 'Within next 1-2 weeks' },
-              ].map((urg) => (
+              {([
+                { id: 'residential', label: 'Residential home' },
+                { id: 'commercial', label: 'Commercial / facility' },
+              ] as const).map((option) => (
                 <button
                   type="button"
-                  key={urg.id}
-                  onClick={() => setFormData({ ...formData, urgency: urg.id as BookingUrgency })}
-                  className={`p-3 rounded-xl border text-left transition-all ${
-                    formData.urgency === urg.id
-                      ? urg.id === 'emergency_today'
-                        ? 'bg-red-950/60 border-red-500 text-white'
-                        : 'bg-blue-950/60 border-blue-500 text-white'
-                      : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
+                  key={option.id}
+                  onClick={() => setFormData({ ...formData, propertyType: option.id })}
+                  aria-pressed={formData.propertyType === option.id}
+                  className={`px-4 py-3 rounded-sm border text-sm font-medium transition-colors ${
+                    formData.propertyType === option.id
+                      ? 'border-ink bg-ink text-canvas'
+                      : 'border-line-strong text-ink-2 hover:border-ink hover:text-ink'
                   }`}
                 >
-                  <div className="font-bold text-xs">{urg.label}</div>
-                  <div className="text-[10px] text-slate-400 mt-0.5">{urg.desc}</div>
+                  {option.label}
                 </button>
               ))}
             </div>
+          </fieldset>
+
+          <div>
+            <label htmlFor="booking-equipment-age" className="field-label">
+              Approximate age of the current equipment
+            </label>
+            <select
+              id="booking-equipment-age"
+              value={formData.equipmentAge}
+              onChange={(e) => setFormData({ ...formData, equipmentAge: e.target.value })}
+              className="field"
+            >
+              <option value="Under 5 years (Modern system)">Under 5 years (modern system)</option>
+              <option value="5-10 years">5–10 years</option>
+              <option value="10-15 years (Aging system)">10–15 years (ageing system)</option>
+              <option value="15+ years (Near end of lifecycle)">15+ years (near end of life)</option>
+              <option value="Unsure / Brand New Installation Needed">Unsure / new installation needed</option>
+            </select>
           </div>
 
-          {/* Issue Description */}
+          <fieldset>
+            <legend className="field-label">Urgency</legend>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {[
+                { id: 'standard', label: 'Standard', desc: 'Upcoming scheduled visit' },
+                { id: 'emergency_today', label: 'Same day', desc: 'No heat or cooling now' },
+                { id: 'flexible', label: 'Flexible', desc: 'Within one to two weeks' },
+              ].map((urg) => {
+                const isSelected = formData.urgency === urg.id;
+                const isEmergency = urg.id === 'emergency_today';
+                return (
+                  <button
+                    type="button"
+                    key={urg.id}
+                    onClick={() => setFormData({ ...formData, urgency: urg.id as BookingUrgency })}
+                    aria-pressed={isSelected}
+                    className={`p-4 rounded-sm border text-left transition-colors ${
+                      isSelected
+                        ? isEmergency
+                          ? 'border-urgent bg-urgent text-white'
+                          : 'border-ink bg-ink text-canvas'
+                        : 'border-line-strong hover:border-ink'
+                    }`}
+                  >
+                    <span className={`type-h4 block ${isSelected ? '' : 'text-ink'}`}>{urg.label}</span>
+                    <span className={`type-meta block mt-1 ${isSelected ? 'opacity-70' : 'text-ink-3'}`}>
+                      {urg.desc}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
           <div>
-            <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-              Describe the problem or request *
+            <label htmlFor="booking-issue" className="field-label">
+              Describe the problem or request <span className="text-ink-3">(required)</span>
             </label>
             <textarea
+              id="booking-issue"
               required
-              rows={3}
+              rows={4}
               value={formData.issueDescription}
               onChange={(e) => setFormData({ ...formData, issueDescription: e.target.value })}
-              placeholder="e.g. Furnace blower makes loud screeching noise; upstairs isn't heating properly; need quote to convert old oil furnace to heat pump..."
-              className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+              placeholder="For example: the furnace blower makes a loud screeching noise, or the upstairs is not heating properly."
+              className="field"
             />
           </div>
 
-          <div className="flex items-center justify-between pt-4">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center justify-between pt-2">
+            <Button type="button" onClick={handleBack} variant="quiet" size="md">
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
               Back
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              id="wizard-step2-next-btn"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all"
-            >
-              Continue to Schedule
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            </Button>
+            <Button type="button" onClick={handleNext} id="wizard-step2-next-btn" variant="primary" size="md">
+              Continue
+              <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
+            </Button>
           </div>
         </div>
       )}
 
       {/* STEP 3: Schedule Date & Time */}
       {step === 3 && (
-        <div className="space-y-6">
+        <div className="mt-10 space-y-10">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">Preferred Date & Arrival Window</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Select your desired appointment slot. We provide a 30-minute arrival call-ahead.
+            <h3 className="type-h3 text-ink">Preferred date and arrival window</h3>
+            <p className="type-small text-ink-2 mt-2">
+              We call thirty minutes before arrival, so you are never left waiting.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                Preferred Service Date *
+              <label htmlFor="booking-date" className="field-label">
+                Service date <span className="text-ink-3">(required)</span>
               </label>
-              <div className="relative">
-                <input
-                  type="date"
-                  required
-                  min={new Date().toISOString().split('T')[0]}
-                  value={formData.preferredDate}
-                  onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 [color-scheme:dark]"
-                />
-              </div>
+              <input
+                id="booking-date"
+                type="date"
+                required
+                min={new Date().toISOString().split('T')[0]}
+                value={formData.preferredDate}
+                onChange={(e) => setFormData({ ...formData, preferredDate: e.target.value })}
+                className="field"
+              />
             </div>
 
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
-                Preferred Window *
-              </label>
-              <div className="space-y-2">
-                {timeSlots.map((slot) => (
-                  <button
-                    type="button"
-                    key={slot}
-                    onClick={() => setFormData({ ...formData, preferredTimeSlot: slot })}
-                    className={`w-full text-left p-3 rounded-xl border text-xs font-semibold transition-all flex items-center justify-between ${
-                      formData.preferredTimeSlot === slot
-                        ? 'bg-blue-950/60 border-blue-500 text-white'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Clock className="w-3.5 h-3.5 text-blue-400" />
-                      {slot}
-                    </span>
-                    {formData.preferredTimeSlot === slot && <CheckCircle2 className="w-4 h-4 text-blue-400" />}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <fieldset>
+              <legend className="field-label">
+                Arrival window <span className="text-ink-3">(required)</span>
+              </legend>
+              <ul className="border-t border-line">
+                {timeSlots.map((slot) => {
+                  const isSelected = formData.preferredTimeSlot === slot;
+                  return (
+                    <li key={slot} className="border-b border-line">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, preferredTimeSlot: slot })}
+                        aria-pressed={isSelected}
+                        className="group w-full flex items-center gap-3 py-3 text-left"
+                      >
+                        <span
+                          className={`w-4 h-4 flex-shrink-0 rounded-full border flex items-center justify-center transition-colors ${
+                            isSelected ? 'border-ink bg-ink text-white' : 'border-line-strong group-hover:border-ink-3'
+                          }`}
+                        >
+                          {isSelected && <Check className="w-2.5 h-2.5" strokeWidth={3} />}
+                        </span>
+                        <span className={`type-small ${isSelected ? 'text-ink font-medium' : 'text-ink-2 group-hover:text-ink'}`}>
+                          {slot}
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </fieldset>
           </div>
 
-          <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 flex items-start gap-3 text-xs text-slate-300">
-            <ShieldCheck className="w-5 h-5 text-emerald-400 flex-shrink-0 mt-0.5" />
-            <div>
-              <span className="font-bold text-white block">Father & Son Arrival Promise</span>
-              We respect your time. Jayson calls 30 minutes before arrival so you never have to wait around wondering when your technician will arrive.
-            </div>
-          </div>
+          <p className="type-small text-ink-2 border-l-2 border-line-strong pl-4">
+            <span className="font-semibold text-ink">Our arrival promise.</span> Jayson calls thirty minutes
+            ahead so you never have to keep an eye on the driveway.
+          </p>
 
-          <div className="flex items-center justify-between pt-4">
-            <button
-              type="button"
-              onClick={handleBack}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center justify-between pt-2">
+            <Button type="button" onClick={handleBack} variant="quiet" size="md">
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
               Back
-            </button>
-            <button
-              type="button"
-              onClick={handleNext}
-              id="wizard-step3-next-btn"
-              className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm transition-all"
-            >
-              Continue to Location
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            </Button>
+            <Button type="button" onClick={handleNext} id="wizard-step3-next-btn" variant="primary" size="md">
+              Continue
+              <ChevronRight className="w-4 h-4" strokeWidth={1.75} />
+            </Button>
           </div>
         </div>
       )}
 
       {/* STEP 4: Contact & Service Location */}
       {step === 4 && (
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="mt-10 space-y-10">
           <div>
-            <h3 className="text-xl sm:text-2xl font-black text-white tracking-tight">Your Contact & Service Location</h3>
-            <p className="text-xs text-slate-400 mt-1">
-              Final step: Where should our service truck be dispatched?
-            </p>
+            <h3 className="type-h3 text-ink">Contact and service location</h3>
+            <p className="type-small text-ink-2 mt-2">Where should the service van be dispatched?</p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                Full Name *
+              <label htmlFor="booking-name" className="field-label">
+                Full name <span className="text-ink-3">(required)</span>
               </label>
               <input
+                id="booking-name"
                 type="text"
                 required
-                placeholder="e.g. Marcus Vance"
+                placeholder="Marcus Vance"
                 value={formData.customerName}
                 onChange={(e) => setFormData({ ...formData, customerName: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                Direct Phone Number *
+              <label htmlFor="booking-phone" className="field-label">
+                Phone number <span className="text-ink-3">(required)</span>
               </label>
               <input
+                id="booking-phone"
                 type="tel"
                 required
-                placeholder="e.g. 226-555-0142"
+                placeholder="226-555-0142"
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                Email Address (Optional, for confirmation receipt)
+              <label htmlFor="booking-email" className="field-label">
+                Email address <span className="text-ink-3">(optional, for a confirmation receipt)</span>
               </label>
               <input
+                id="booking-email"
                 type="email"
                 placeholder="name@example.com"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                Street Address *
+              <label htmlFor="booking-street" className="field-label">
+                Street address <span className="text-ink-3">(required)</span>
               </label>
               <input
+                id="booking-street"
                 type="text"
                 required
-                placeholder="e.g. 45 Heritage Court"
+                placeholder="45 Heritage Court"
                 value={formData.street}
                 onChange={(e) => setFormData({ ...formData, street: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                City / Community *
+              <label htmlFor="booking-city" className="field-label">
+                City or community <span className="text-ink-3">(required)</span>
               </label>
               <input
+                id="booking-city"
                 type="text"
                 required
-                placeholder="e.g. London / Area"
+                placeholder="London"
                 value={formData.city}
                 onChange={(e) => setFormData({ ...formData, city: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                Postal Code
+              <label htmlFor="booking-postal" className="field-label">
+                Postal code
               </label>
               <input
+                id="booking-postal"
                 type="text"
-                placeholder="e.g. N6G 2T4"
+                placeholder="N6G 2T4"
                 value={formData.postalCode}
                 onChange={(e) => setFormData({ ...formData, postalCode: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
+                className="field"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-4">
-            <button
-              type="button"
-              disabled={isSubmitting}
-              onClick={handleBack}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-semibold text-sm transition-all"
-            >
-              <ChevronLeft className="w-4 h-4" />
+          <div className="flex items-center justify-between pt-2">
+            <Button type="button" onClick={handleBack} disabled={isSubmitting} variant="quiet" size="md">
+              <ChevronLeft className="w-4 h-4" strokeWidth={1.75} />
               Back
-            </button>
-            <button
+            </Button>
+            <Button
               type="submit"
               disabled={isSubmitting}
               id="wizard-submit-booking-btn"
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-extrabold text-sm shadow-xl hover:shadow-blue-500/20 active:scale-[0.98] transition-all disabled:opacity-50"
+              variant="primary"
+              size="lg"
             >
-              {isSubmitting ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  <span>Logging Schedule...</span>
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-4 h-4" />
-                  <span>Confirm & Book Appointment</span>
-                </>
-              )}
-            </button>
+              {isSubmitting ? 'Sending request…' : 'Confirm appointment'}
+            </Button>
           </div>
         </form>
       )}

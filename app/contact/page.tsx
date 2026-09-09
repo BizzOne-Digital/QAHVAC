@@ -3,8 +3,13 @@
 import React, { useState } from 'react';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
+import { PageHero } from '@/components/ui/PageHero';
+import { Section } from '@/components/ui/Section';
+import { Container } from '@/components/ui/Container';
+import { Eyebrow } from '@/components/ui/Eyebrow';
+import { Button } from '@/components/ui/Button';
 import { APP_CONFIG } from '@/lib/config';
-import { Phone, Mail, Clock, MapPin, Send, CheckCircle2, AlertCircle, ShieldCheck, Flame } from 'lucide-react';
+import { HERO_ART } from '@/lib/images';
 
 export default function ContactPage() {
   const [formData, setFormData] = useState({
@@ -50,7 +55,7 @@ export default function ContactPage() {
 
       setStatusMessage({
         type: 'success',
-        text: 'Thank you for reaching out to QP HVAC! Your message has been routed to Jayson. We will get back to you promptly.',
+        text: 'Thank you for reaching out. Your message has been routed to Jayson and we will get back to you promptly.',
       });
 
       setFormData({
@@ -71,255 +76,208 @@ export default function ContactPage() {
     }
   };
 
+  const art = HERO_ART.contact;
+
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-canvas text-ink flex flex-col">
       <Navbar />
 
-      <main className="flex-1 py-14 lg:py-18">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Header */}
-          <div className="text-center max-w-3xl mx-auto mb-14">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-blue-400 text-xs font-bold uppercase tracking-wider mb-3">
-              Direct Community Communication
-            </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight">
-              Contact QP HVAC
-            </h1>
-            <p className="text-sm sm:text-base text-slate-400 mt-2">
-              Speak directly with Jayson. No call center delays, no automated runaround.
-            </p>
-          </div>
+      <main className="flex-1">
+        <PageHero
+          eyebrow="Contact"
+          title="Speak directly with Jayson."
+          lead="No call centre, no automated queue, no message that disappears into a system. Call, text or write."
+          imageSrc={art.src}
+          imageAlt={art.alt}
+          imagePosition={art.position}
+          align={art.align}
+        />
 
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-start">
-            {/* Left: Contact Info & Emergency Hotline Cards */}
-            <div className="lg:col-span-5 space-y-6">
-              {/* Emergency Call Box */}
-              <div className="p-6 rounded-2xl bg-gradient-to-br from-red-950/80 via-slate-900 to-slate-950 border border-red-800/80 shadow-2xl">
-                <div className="flex items-center gap-3 text-red-400 mb-3">
-                  <Flame className="w-5 h-5" />
-                  <span className="text-xs font-bold uppercase tracking-wider">Urgent Emergency Hotline</span>
-                </div>
-                <h3 className="text-xl font-black text-white">No Heat or Sudden AC Failure?</h3>
-                <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                  Call our direct mobile dispatch line for prioritized same-day service.
-                </p>
-                <div className="mt-4 pt-4 border-t border-red-900/60">
-                  <a
-                    href={`tel:${APP_CONFIG.phone}`}
-                    id="contact-page-phone-btn"
-                    className="inline-flex items-center justify-center gap-2.5 w-full py-3.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-black text-base shadow-lg transition-all"
-                  >
-                    <Phone className="w-4 h-4" />
-                    <span>{APP_CONFIG.phoneDisplay}</span>
-                  </a>
-                </div>
-              </div>
-
-              {/* Direct Info Box */}
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-5">
-                <h4 className="text-white font-bold text-sm uppercase tracking-wider">Business Details</h4>
-
-                <div className="space-y-4 text-xs">
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-slate-950 text-blue-400 border border-slate-800">
-                      <Phone className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">Direct Telephone</span>
-                      <a href={`tel:${APP_CONFIG.phone}`} className="font-bold text-white hover:text-blue-400 text-sm">
-                        {APP_CONFIG.phoneDisplay}
-                      </a>
-                      <span className="text-[10px] text-slate-500 block">Call or Text</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-slate-950 text-blue-400 border border-slate-800">
-                      <Mail className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">Direct Email</span>
-                      <a href={`mailto:${APP_CONFIG.email}`} className="font-bold text-white hover:text-blue-400 text-sm">
-                        {APP_CONFIG.email}
-                      </a>
-                      <span className="text-[10px] text-slate-500 block">Responses within 2-4 hours</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-slate-950 text-emerald-400 border border-slate-800">
-                      <Clock className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">Regular Operating Hours</span>
-                      <div className="text-slate-200 font-medium">Mon - Fri: 7:00 AM - 8:00 PM</div>
-                      <div className="text-slate-200 font-medium">Saturday: 8:00 AM - 6:00 PM</div>
-                      <div className="text-slate-200 font-medium">Sunday: 9:00 AM - 4:00 PM</div>
-                      <span className="text-[10px] text-red-400 font-bold block mt-1">24/7 Urgent Dispatch Available</span>
-                    </div>
-                  </div>
-
-                  <div className="flex items-start gap-3">
-                    <div className="p-2 rounded-lg bg-slate-950 text-red-400 border border-slate-800">
-                      <MapPin className="w-4 h-4" />
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block font-medium">Service Area</span>
-                      <div className="text-slate-200 font-medium">Greater Region & Surrounding Communities</div>
-                      <span className="text-[10px] text-slate-500 block">Residential homes & commercial facilities</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Father & Son Assurance */}
-              <div className="p-5 rounded-xl bg-slate-900/50 border border-slate-800 flex items-start gap-3 text-xs text-slate-300">
-                <ShieldCheck className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" />
-                <p>
-                  <strong>Personal Touch:</strong> When you send a message, Jayson reviews it directly. We do not sell your contact details or send automated spam.
-                </p>
-              </div>
-            </div>
-
-            {/* Right: Message / Inquiry Form */}
-            <div className="lg:col-span-7">
-              <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl">
-                <div className="border-b border-slate-800 pb-4 mb-6">
-                  <h3 className="text-xl font-bold text-white">Send a Message or Request a Quote</h3>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Fill out the details below and we will contact you promptly.
+        <Section tone="canvas">
+          <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-16 gap-x-16 items-start">
+              {/* Details */}
+              <div className="lg:col-span-5 lg:sticky lg:top-32">
+                <div className="pb-8 border-b border-line">
+                  <Eyebrow tone="urgent" rule={false}>
+                    Emergency line
+                  </Eyebrow>
+                  <p className="type-h2 text-ink mt-4">
+                    <a href={`tel:${APP_CONFIG.phone}`} id="contact-page-phone-btn" className="hover:text-urgent transition-colors">
+                      {APP_CONFIG.phoneDisplay}
+                    </a>
+                  </p>
+                  <p className="type-small text-ink-2 mt-3">
+                    No heat or a sudden cooling failure? Call for prioritised same-day service.
                   </p>
                 </div>
 
-                {statusMessage && (
-                  <div
-                    className={`p-4 rounded-xl mb-6 text-xs flex items-center gap-3 border ${
-                      statusMessage.type === 'success'
-                        ? 'bg-emerald-950/70 border-emerald-800 text-emerald-200'
-                        : 'bg-red-950/70 border-red-800 text-red-200'
-                    }`}
-                  >
-                    {statusMessage.type === 'success' ? (
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                    ) : (
-                      <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
-                    )}
-                    <span>{statusMessage.text}</span>
-                  </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Your Full Name *
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        placeholder="Marcus Vance"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Phone Number *
-                      </label>
-                      <input
-                        type="tel"
-                        required
-                        placeholder="226-555-0142"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
+                <dl className="mt-2">
+                  <div className="py-6 border-b border-line">
+                    <dt className="type-label text-ink-3">Email</dt>
+                    <dd className="type-h4 mt-2">
+                      <a href={`mailto:${APP_CONFIG.email}`} className="text-ink hover:text-accent transition-colors">
+                        {APP_CONFIG.email}
+                      </a>
+                    </dd>
+                    <p className="type-meta text-ink-3 mt-1.5">Replies within two to four hours</p>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Email Address
-                      </label>
-                      <input
-                        type="email"
-                        placeholder="name@example.com"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                        Property Type
-                      </label>
-                      <select
-                        value={formData.propertyType}
-                        onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
-                        className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500"
-                      >
-                        <option value="residential">Residential Home</option>
-                        <option value="commercial">Commercial / Facility</option>
-                      </select>
-                    </div>
+                  <div className="py-6 border-b border-line">
+                    <dt className="type-label text-ink-3">Hours</dt>
+                    <dd className="type-small text-ink mt-2.5 space-y-1">
+                      <span className="block">Monday – Friday · 7:00am – 8:00pm</span>
+                      <span className="block">Saturday · 8:00am – 6:00pm</span>
+                      <span className="block">Sunday · 9:00am – 4:00pm</span>
+                    </dd>
+                    <p className="type-meta text-urgent font-semibold mt-2">24/7 urgent dispatch available</p>
                   </div>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="e.g. Furnace tune-up or Heat pump quote"
-                      value={formData.subject}
-                      onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
+                  <div className="py-6 border-b border-line">
+                    <dt className="type-label text-ink-3">Service area</dt>
+                    <dd className="type-small text-ink mt-2.5">
+                      Greater region and surrounding communities
+                    </dd>
+                    <p className="type-meta text-ink-3 mt-1.5">Residential homes and commercial facilities</p>
                   </div>
+                </dl>
 
-                  <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-1.5">
-                      How Can We Help Your Heating or Cooling System? *
-                    </label>
-                    <textarea
-                      required
-                      rows={4}
-                      placeholder="Please let us know your system issue, equipment brand or what service you are looking for..."
-                      value={formData.message}
-                      onChange={(e) => setFormData({ ...formData, message: e.target.value })}
-                      className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
+                <p className="type-small text-ink-2 mt-8 border-l-2 border-line-strong pl-4">
+                  <span className="font-semibold text-ink">A personal note.</span> Jayson reads every message
+                  himself. We do not sell contact details and we do not send automated marketing.
+                </p>
+              </div>
 
-                  <div className="pt-2">
-                    <button
-                      type="submit"
-                      disabled={isSubmitting}
-                      id="contact-submit-btn"
-                      className="inline-flex items-center justify-center gap-2 w-full py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-bold text-sm shadow-xl active:scale-[0.99] transition-all disabled:opacity-50"
+              {/* Form */}
+              <div className="lg:col-span-7">
+                <div className="bg-surface border border-line p-6 sm:p-10">
+                  <h2 className="type-h3 text-ink">Send a message or request a quote</h2>
+                  <p className="type-small text-ink-2 mt-2">
+                    Tell us what the system is doing and we will come back to you with next steps.
+                  </p>
+
+                  {statusMessage && (
+                    <p
+                      role="status"
+                      className={`type-small mt-8 border-l-2 pl-4 ${
+                        statusMessage.type === 'success'
+                          ? 'border-accent text-ink'
+                          : 'border-urgent text-urgent'
+                      }`}
                     >
-                      {isSubmitting ? (
-                        <>
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span>Sending to Jayson...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Send className="w-4 h-4" />
-                          <span>Send Message Directly</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </form>
+                      {statusMessage.text}
+                    </p>
+                  )}
+
+                  <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                      <div>
+                        <label htmlFor="contact-name" className="field-label">
+                          Full name <span className="text-ink-3">(required)</span>
+                        </label>
+                        <input
+                          id="contact-name"
+                          type="text"
+                          required
+                          placeholder="Marcus Vance"
+                          value={formData.name}
+                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                          className="field"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="contact-phone" className="field-label">
+                          Phone number <span className="text-ink-3">(required)</span>
+                        </label>
+                        <input
+                          id="contact-phone"
+                          type="tel"
+                          required
+                          placeholder="226-555-0142"
+                          value={formData.phone}
+                          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                          className="field"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="contact-email" className="field-label">
+                          Email address
+                        </label>
+                        <input
+                          id="contact-email"
+                          type="email"
+                          placeholder="name@example.com"
+                          value={formData.email}
+                          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                          className="field"
+                        />
+                      </div>
+
+                      <div>
+                        <label htmlFor="contact-property" className="field-label">
+                          Property type
+                        </label>
+                        <select
+                          id="contact-property"
+                          value={formData.propertyType}
+                          onChange={(e) => setFormData({ ...formData, propertyType: e.target.value })}
+                          className="field"
+                        >
+                          <option value="residential">Residential home</option>
+                          <option value="commercial">Commercial / facility</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label htmlFor="contact-subject" className="field-label">
+                        Subject
+                      </label>
+                      <input
+                        id="contact-subject"
+                        type="text"
+                        placeholder="Furnace tune-up, or a heat pump quote"
+                        value={formData.subject}
+                        onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                        className="field"
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="contact-message" className="field-label">
+                        How can we help? <span className="text-ink-3">(required)</span>
+                      </label>
+                      <textarea
+                        id="contact-message"
+                        required
+                        rows={5}
+                        placeholder="Let us know the system issue, the equipment brand, or the service you are looking for."
+                        value={formData.message}
+                        onChange={(e) => setFormData({ ...formData, message: e.target.value })}
+                        className="field"
+                      />
+                    </div>
+
+                    <div className="pt-2">
+                      <Button
+                        type="submit"
+                        disabled={isSubmitting}
+                        id="contact-submit-btn"
+                        variant="primary"
+                        size="lg"
+                        fullWidth
+                      >
+                        {isSubmitting ? 'Sending…' : 'Send message'}
+                      </Button>
+                    </div>
+                  </form>
+                </div>
               </div>
             </div>
-          </div>
-        </div>
+          </Container>
+        </Section>
       </main>
 
       <Footer />

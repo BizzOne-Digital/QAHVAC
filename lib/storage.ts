@@ -82,7 +82,7 @@ const INITIAL_SERVICES: ServiceItem[] = [
     priceEstimate: 'Diagnostic from $99 | Replacements from $3,100',
     durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
     emergencyAvailable: true,
-    image: 'https://images.unsplash.com/photo-1581092335397-9583fe92d232?q=80&w=1200&auto=format&fit=crop',
+    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg0FJKr_akCWpTXFeEXCoCEunHTkarALqX967icct7Qw&s=10',
     active: true,
     order: 2,
   },
@@ -166,7 +166,7 @@ const INITIAL_SERVICES: ServiceItem[] = [
     priceEstimate: 'Custom commercial quotes & maintenance plans',
     durationEstimate: 'Tailored to facility size',
     emergencyAvailable: true,
-    image: 'https://images.unsplash.com/photo-1541888946425-d0fbb186c5f7?q=80&w=1200&auto=format&fit=crop',
+    image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJXV_5hkVZgYJorVuXTLOhjJaaEkI5LdorzXgZMYuiLg&s=10',
     active: true,
     order: 6,
   }

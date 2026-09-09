@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import { Hero } from '@/components/home/Hero';
 import { DiagnosticTriage } from '@/components/home/DiagnosticTriage';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
@@ -9,9 +8,14 @@ import { BookingWizard } from '@/components/booking/BookingWizard';
 import { Navbar } from '@/components/layout/Navbar';
 import { Footer } from '@/components/layout/Footer';
 import { EmergencyBanner } from '@/components/layout/EmergencyBanner';
+import { Section } from '@/components/ui/Section';
+import { Container } from '@/components/ui/Container';
+import { Eyebrow } from '@/components/ui/Eyebrow';
+import { SectionHeading } from '@/components/ui/SectionHeading';
+import { Button } from '@/components/ui/Button';
+import { Reveal } from '@/components/ui/Reveal';
 import { storage } from '@/lib/storage';
 import { APP_CONFIG } from '@/lib/config';
-import { ArrowRight, PhoneCall, Calendar, ShieldCheck, Flame, Snowflake, Wrench } from 'lucide-react';
 import { generateHvacBusinessSchema } from '@/lib/seo';
 
 export default function HomePage() {
@@ -20,117 +24,134 @@ export default function HomePage() {
   const jsonLd = generateHvacBusinessSchema();
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white">
-      {/* Schema.org Structured Data */}
+    <div className="min-h-screen bg-canvas text-ink flex flex-col">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* Top Emergency Dispatch Banner */}
       {settings.emergencyBanner.enabled && (
         <EmergencyBanner headline={settings.emergencyBanner.headline} />
       )}
 
-      {/* Navigation */}
       <Navbar />
 
       <main className="flex-1">
-        {/* Hero with headline from user brief */}
         <Hero />
 
-        {/* Featured Services Grid */}
-        <section id="services-preview-section" className="py-20 bg-slate-950 border-b border-slate-800">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-              <div>
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-900 border border-slate-800 text-blue-400 text-xs font-bold uppercase tracking-wider mb-2">
-                  <Wrench className="w-3.5 h-3.5" />
-                  Heating, Cooling & Airflow Solutions
-                </span>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                  Comprehensive HVAC Services
-                </h2>
-                <p className="text-xs sm:text-sm text-slate-400 mt-2 max-w-xl">
-                  From emergency furnace diagnostic calls to whisper-quiet central cooling installations and eco-friendly heat pumps.
-                </p>
+        {/* Statement — the promise in the owner's own words, set as editorial copy. */}
+        <Section tone="canvas" space="default">
+          <Container>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-10 gap-x-16">
+              <div className="lg:col-span-4">
+                <Eyebrow>Our promise</Eyebrow>
               </div>
 
-              <Link
-                href="/services"
-                id="view-all-services-link"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs border border-slate-700 transition-all self-start md:self-auto"
-              >
-                <span>View Full Service Catalog</span>
-                <ArrowRight className="w-4 h-4 text-blue-400" />
-              </Link>
-            </div>
+              <div className="lg:col-span-8">
+                <p className="type-display-sm text-ink max-w-[36rem]">{settings.aboutStory}</p>
 
-            {/* Service Cards Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {services.map((service) => (
-                <ServiceCard key={service.id} service={service} />
+                <dl className="grid grid-cols-2 sm:grid-cols-4 gap-x-8 gap-y-10 mt-16 pt-10 border-t border-line">
+                  <div>
+                    <dd className="type-stat text-ink">{settings.stats.yearsExperience}</dd>
+                    <dt className="type-meta text-ink-3 mt-3">Years in the trade</dt>
+                  </div>
+                  <div>
+                    <dd className="type-stat text-ink">{settings.stats.familiesServed}</dd>
+                    <dt className="type-meta text-ink-3 mt-3">Families served</dt>
+                  </div>
+                  <div>
+                    <dd className="type-stat text-ink">{settings.stats.responseRate}</dd>
+                    <dt className="type-meta text-ink-3 mt-3">Typical response</dt>
+                  </div>
+                  <div>
+                    <dd className="type-stat text-ink">{settings.stats.satisfactionRate}</dd>
+                    <dt className="type-meta text-ink-3 mt-3">Work stood behind</dt>
+                  </div>
+                </dl>
+              </div>
+            </div>
+          </Container>
+        </Section>
+
+        {/* Service catalogue preview */}
+        <Section id="services-preview-section" tone="canvas" divide>
+          <Container>
+            <SectionHeading
+              eyebrow="Heating, cooling & airflow"
+              title="What we do"
+              lead="From an emergency furnace call at midnight to a quiet central cooling installation and cold-climate heat pump conversions."
+              aside={
+                <Button href="/services" id="view-all-services-link" variant="secondary" size="md">
+                  View all services
+                </Button>
+              }
+            />
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-px bg-line border border-line mt-16 lg:mt-20">
+              {services.map((service, index) => (
+                <ServiceCard key={service.id} service={service} priority={index < 3} />
               ))}
             </div>
-          </div>
-        </section>
+          </Container>
+        </Section>
 
-        {/* Interactive Symptom Diagnostic Tool */}
         <DiagnosticTriage />
 
-        {/* Father & Son Values / Why Choose Us */}
         <WhyChooseUs />
 
-        {/* Dedicated Fast Booking Section */}
-        <section id="fast-booking-section" className="py-20 bg-slate-950 border-b border-slate-800 relative">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center max-w-2xl mx-auto mb-12">
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-950 border border-blue-800 text-blue-400 text-xs font-bold uppercase tracking-wider mb-3">
-                <Calendar className="w-3.5 h-3.5" />
-                Easy Online Scheduling
-              </span>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white tracking-tight">
-                Schedule Your Service Appointment
-              </h2>
-              <p className="text-xs sm:text-sm text-slate-400 mt-2">
-                Select your service, choose a convenient arrival window, and Jayson will personally confirm your dispatch.
-              </p>
-            </div>
-
-            {/* Multi-Step Wizard Embedded */}
-            <BookingWizard />
-          </div>
-        </section>
-
-        {/* Community Reviews & Testimonials */}
         <Testimonials />
 
-        {/* Emergency Call-Out Strip */}
-        <section className="bg-gradient-to-r from-slate-950 via-red-950 to-slate-950 text-white py-14 border-b border-red-900/60">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-red-400">Immediate Assistance</span>
-              <h2 className="text-2xl sm:text-3xl font-black mt-1">Freezing Winter Night or Extreme Heatwave?</h2>
-              <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-xl">
-                Don&apos;t wait until morning with vulnerable children or elderly family members. Our father-and-son team is equipped for emergency same-day dispatch.
-              </p>
-            </div>
+        {/* Scheduling */}
+        <Section id="fast-booking-section" tone="canvas" divide>
+          <Container>
+            <SectionHeading
+              align="center"
+              eyebrow="Online scheduling"
+              title="Book your appointment"
+              lead="Choose your service and a convenient arrival window. Jayson confirms every dispatch personally."
+              className="mx-auto"
+            />
 
-            <div className="flex flex-col sm:flex-row items-center gap-4">
-              <a
-                href={`tel:${APP_CONFIG.phone}`}
-                id="emergency-strip-call-btn"
-                className="inline-flex items-center gap-2.5 px-8 py-4 rounded-xl bg-red-600 hover:bg-red-500 text-white font-extrabold text-base shadow-xl transition-all"
-              >
-                <PhoneCall className="w-5 h-5" />
-                <span>Call Jayson: {APP_CONFIG.phoneDisplay}</span>
-              </a>
+            <div className="mt-14 lg:mt-16">
+              <BookingWizard />
             </div>
-          </div>
-        </section>
+          </Container>
+        </Section>
+
+        {/* Closing emergency strip */}
+        <Section tone="obsidian" space="tight">
+          <Container>
+            <Reveal>
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-y-8 gap-x-16 items-end">
+                <div className="lg:col-span-7">
+                  <Eyebrow tone="urgent" rule={false}>
+                    Immediate assistance
+                  </Eyebrow>
+                  <h2 className="type-h2 text-white mt-5">
+                    A freezing night or a heatwave will not wait until morning.
+                  </h2>
+                  <p className="type-body text-white/60 mt-5 max-w-[34rem]">
+                    If there are young children or elderly family in the house, call us now. Our father and son
+                    team is equipped for same-day emergency dispatch.
+                  </p>
+                </div>
+
+                <div className="lg:col-span-5 lg:justify-self-end">
+                  <Button
+                    href={`tel:${APP_CONFIG.phone}`}
+                    id="emergency-strip-call-btn"
+                    variant="urgent"
+                    size="lg"
+                  >
+                    Call Jayson · {APP_CONFIG.phoneDisplay}
+                  </Button>
+                </div>
+              </div>
+            </Reveal>
+          </Container>
+        </Section>
       </main>
 
-      {/* Footer */}
       <Footer />
     </div>
   );
