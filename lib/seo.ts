@@ -38,6 +38,11 @@ export function getSiteUrl(): string {
 }
 
 export function absoluteUrl(path = ''): string {
+  // Images and logos may already be absolute — a service photograph hosted on
+  // a CDN, say. Prefixing those produced `https://site/https://cdn/...`, which
+  // is a dead URL in structured data and in og:image.
+  if (/^https?:\/\//i.test(path)) return path;
+
   const normalised = path && !path.startsWith('/') ? `/${path}` : path;
   // The homepage canonical is the origin with a trailing slash.
   return `${getSiteUrl()}${normalised || '/'}`;
@@ -49,9 +54,13 @@ const TITLE_SUFFIX = `${SITE_NAME} — Father & Son Heating & Cooling`;
 const DEFAULT_DESCRIPTION =
   "Family values, professional comfort. Father and son keeping your home's heating and cooling running at its best — honest pricing, 24/7 emergency dispatch, furnace, AC and heat pump service.";
 
-/** Used when a page supplies no image of its own. */
-export const DEFAULT_OG_IMAGE =
-  'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop';
+/**
+ * Used when a page supplies no image of its own. This is what appears when the
+ * site is shared on Facebook, WhatsApp or in a text message, so it uses the
+ * client's own photography rather than stock — `absoluteUrl` turns the local
+ * path into the fully-qualified URL those crawlers require.
+ */
+export const DEFAULT_OG_IMAGE = '/assets/Img/jyson6.jpeg';
 
 export const SITE_KEYWORDS = [
   'HVAC',
@@ -130,13 +139,13 @@ export function buildMetadata({
       siteName: SITE_NAME,
       locale: ogLocale(locale),
       type,
-      images: [{ url: image, width: 1200, height: 630, alt: `${SITE_NAME} — heating and cooling` }],
+      images: [{ url: absoluteUrl(image), width: 1200, height: 630, alt: `${SITE_NAME} — heating and cooling` }],
     },
     twitter: {
       card: 'summary_large_image',
       title: fullTitle,
       description: metaDescription,
-      images: [image],
+      images: [absoluteUrl(image)],
     },
   };
 }
@@ -277,7 +286,7 @@ export function generateHvacBusinessSchema(settings?: SiteSettings | null) {
     url: siteUrl,
     telephone: `+${phone.replace(/\D/g, '')}`,
     email: settings?.email || APP_CONFIG.email,
-    image: DEFAULT_OG_IMAGE,
+    image: absoluteUrl(DEFAULT_OG_IMAGE),
     priceRange: '$$',
     ...(settings?.logoUrl ? { logo: absoluteUrl(settings.logoUrl) } : {}),
     founder: {
@@ -323,6 +332,12 @@ export function generateServiceSchema(service: ServiceItem, settings?: SiteSetti
   const siteUrl = getSiteUrl();
   const url = `${siteUrl}/services/${service.slug}`;
 
+  // Cover first, then the gallery. Google accepts several images per node and
+  // prefers a choice, so the whole set is offered rather than the cover alone.
+  const images = [service.image, ...(service.images ?? [])]
+    .filter(Boolean)
+    .map(absoluteUrl);
+
   return {
     '@context': 'https://schema.org',
     '@type': 'Service',
@@ -330,7 +345,7 @@ export function generateServiceSchema(service: ServiceItem, settings?: SiteSetti
     name: service.title,
     description: service.fullDesc || service.shortDesc,
     url,
-    ...(service.image ? { image: absoluteUrl(service.image) } : {}),
+    ...(images.length > 0 ? { image: images } : {}),
     serviceType: service.category,
     provider: { '@id': `${siteUrl}/#business` },
     areaServed: {

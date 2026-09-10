@@ -97,3 +97,56 @@ export function parseUploadUrl(url: string): { folder: UploadFolder; filename: s
 export function isLegacyUploadUrl(url: string): boolean {
   return typeof url === 'string' && url.startsWith('/uploads/');
 }
+
+/* ------------------------------------------------------------------ Galleries */
+
+/** Upper bound on a service gallery. Keeps payloads and page weight sane. */
+export const MAX_SERVICE_IMAGES = 8;
+
+/**
+ * Whether a string is a usable image reference for a content document.
+ *
+ * Three shapes are allowed: our own `/api/uploads/...` URLs, any other
+ * site-relative path (the bundled placeholder art lives at `/assets/...`), and
+ * absolute `http(s)` URLs for images hosted elsewhere. Everything else —
+ * `javascript:`, `data:`, protocol-relative `//host` — is rejected, so a value
+ * that reaches an `<img src>` can never carry a scheme we did not intend.
+ */
+export function isPublicImageUrl(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+
+  const url = value.trim();
+  if (!url || url.length > 2048) return false;
+  if (url.startsWith('//')) return false;
+  if (url.startsWith('/')) return true;
+
+  try {
+    return ['http:', 'https:'].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Cleans a client-supplied gallery into a storable list: trimmed, de-duplicated,
+ * order preserved, invalid entries dropped and the length capped. A non-array
+ * yields an empty list rather than throwing, so a malformed body degrades to
+ * "no images" instead of a 500.
+ */
+export function normalizeImageList(value: unknown, max = MAX_SERVICE_IMAGES): string[] {
+  if (!Array.isArray(value)) return [];
+
+  const seen = new Set<string>();
+  const result: string[] = [];
+
+  for (const entry of value) {
+    if (!isPublicImageUrl(entry)) continue;
+    const url = entry.trim();
+    if (seen.has(url)) continue;
+    seen.add(url);
+    result.push(url);
+    if (result.length >= max) break;
+  }
+
+  return result;
+}

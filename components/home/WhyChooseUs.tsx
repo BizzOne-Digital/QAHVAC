@@ -44,14 +44,16 @@ export function WhyChooseUs() {
             </p>
 
             <div className="relative aspect-[5/6] mt-10 overflow-hidden bg-canvas-sunk">
+              {/* The section argues you get this family rather than a franchise,
+                  so it carries the one photograph with a person in it. Local
+                  asset, so Next optimises it — the stock frame could not be. */}
               <Image
-                src={photo('craftsmanAtWork', 1200)}
-                alt="QP HVAC craftsman servicing climate equipment"
+                src={photo('technicianRooftop')}
+                alt="A QP HVAC technician in a branded shirt servicing a rooftop package unit"
                 fill
-                unoptimized
-                referrerPolicy="no-referrer"
                 sizes="(max-width: 1024px) 100vw, 40vw"
                 className="object-cover saturate-[0.88]"
+                style={{ objectPosition: '50% 30%' }}
               />
             </div>
 

@@ -85,6 +85,7 @@ export default async function AboutPage() {
           imageAlt={art.alt}
           imagePosition={art.position}
           align={art.align}
+          scrim={art.scrim}
         />
 
         {/* Philosophy — a reading column, set wide and quiet. */}
@@ -120,13 +121,12 @@ export default async function AboutPage() {
         {/* Full-width photograph — an image-led break in the rhythm. */}
         <div className="relative h-[clamp(20rem,52vh,34rem)] bg-obsidian">
           <Image
-            src={photo('twoTechnicians', 2200)}
-            alt="QP HVAC father and son team working on a residential system"
+            src={photo('technicianRooftop')}
+            alt="A QP HVAC technician on a rooftop, servicing a commercial package unit"
             fill
-            referrerPolicy="no-referrer"
             sizes="100vw"
             className="object-cover saturate-[0.85]"
-            style={{ objectPosition: '50% 35%' }}
+            style={{ objectPosition: '50% 25%' }}
           />
           <div aria-hidden className="absolute inset-0 bg-gradient-to-t from-obsidian/70 via-transparent to-transparent" />
           <Container className="absolute inset-x-0 bottom-0 pb-10">

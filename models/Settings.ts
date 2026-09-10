@@ -53,6 +53,14 @@ const SettingsSchema = new Schema<SettingsDocument>(
     },
 
     logoUrl: String,
+
+    businessCard: {
+      enabled: Boolean,
+      imageUrl: String,
+      heading: String,
+      caption: String,
+      alt: String,
+    },
   },
   { timestamps: true, minimize: false }
 );

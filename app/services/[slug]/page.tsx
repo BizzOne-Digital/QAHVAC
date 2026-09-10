@@ -7,6 +7,7 @@ import { SiteHeader } from '@/components/layout/SiteHeader';
 import { SiteFooter } from '@/components/layout/SiteFooter';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 import { PageHero } from '@/components/ui/PageHero';
+import { ServiceGallery } from '@/components/services/ServiceGallery';
 import { Section } from '@/components/ui/Section';
 import { Container } from '@/components/ui/Container';
 import { Button } from '@/components/ui/Button';
@@ -143,6 +144,8 @@ export default async function ServiceDetailPage(
                     ))}
                   </ul>
                 </div>
+
+                <ServiceGallery images={service.images ?? []} title={service.title} />
 
                 <p className="type-small text-ink-2 mt-12 border-l-2 border-line-strong pl-5 max-w-[34rem]">
                   <span className="font-semibold text-ink">Our workmanship guarantee.</span> Parts and

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
+import { MAX_SERVICE_IMAGES, isPublicImageUrl, normalizeImageList } from '@/lib/uploads/validation';
 import { ServiceItem } from '@/types';
 
 export async function GET(req: NextRequest) {
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest) {
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
-    const { title, category, shortDesc, fullDesc, durationEstimate, features, image } = body;
+    const { title, category, shortDesc, fullDesc, durationEstimate, features, image, images } = body;
 
     if (!title || !shortDesc) {
       return NextResponse.json({ success: false, error: 'Title and short description are required.' }, { status: 400 });
@@ -45,8 +46,15 @@ export async function POST(req: NextRequest) {
       fullDesc: (fullDesc || shortDesc).trim(),
       features: Array.isArray(features) ? features : [],
       durationEstimate: durationEstimate || '1-2 hours',
+      // The gallery is sanitised rather than rejected: bad entries are dropped
+      // and the list is capped, so one stray value cannot fail the whole save.
+      images: normalizeImageList(images, MAX_SERVICE_IMAGES),
       emergencyAvailable: !!body.emergencyAvailable,
-      image: image || 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',
+      // Same rule as the gallery: an unusable cover falls back to the stock
+      // photograph rather than reaching an <img src> unchecked.
+      image: isPublicImageUrl(image)
+        ? image.trim()
+        : 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',
       active: body.active !== false,
       order: allServices.length + 1,
     };

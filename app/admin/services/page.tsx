@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { AdminImage } from '@/components/admin/AdminImage';
 import { LocalImageField } from '@/components/admin/LocalImageField';
+import { LocalImageGalleryField } from '@/components/admin/LocalImageGalleryField';
 import { useToast } from '@/components/admin/Toast';
 import {
   AdminPageHeading,
@@ -66,6 +67,7 @@ export default function AdminServicesPage() {
       durationEstimate: '1 – 2 hours',
       features: [],
       image: '',
+      images: [],
       active: true,
       emergencyAvailable: false,
     });
@@ -133,6 +135,9 @@ export default function AdminServicesPage() {
       // The record is gone, so its stored image is now orphaned. Cleanup
       // failures are logged rather than surfaced — the delete itself succeeded.
       await deleteServiceImage(service?.image);
+      for (const url of service?.images ?? []) {
+        await deleteServiceImage(url);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'The service could not be removed.');
     } finally {
@@ -322,8 +327,16 @@ export default function AdminServicesPage() {
                 folder="products"
                 value={editingService.image}
                 placeholder="Upload service image"
-                hint="Stored in the database and served from /api/uploads, so it survives redeployments."
+                hint="Used on the service card, the page hero and social previews."
                 onChange={url => setEditingService({ ...editingService, image: url || '' })}
+              />
+
+              <LocalImageGalleryField
+                label="Gallery images"
+                folder="products"
+                value={editingService.images ?? []}
+                hint="Optional. Shown as a gallery on the service page, in the order set here."
+                onChange={images => setEditingService({ ...editingService, images })}
               />
 
               <div className="flex flex-col sm:flex-row sm:items-center gap-4 sm:gap-8 pt-1">

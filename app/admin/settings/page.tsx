@@ -6,7 +6,8 @@ import { useToast } from '@/components/admin/Toast';
 import { AdminPageHeading, Field, LoadingState, Panel, PanelHeading } from '@/components/admin/ui';
 import { Button } from '@/components/ui/Button';
 import { formatPhoneDisplay } from '@/lib/site';
-import { SiteSettings } from '@/types';
+import { BusinessCard, SiteSettings } from '@/types';
+import { EMPTY_BUSINESS_CARD } from '@/lib/businessCard';
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState<SiteSettings | null>(null);
@@ -28,6 +29,9 @@ export default function AdminSettingsPage() {
         setSettings({
           ...loaded,
           phoneDisplay: loaded.phoneDisplay || formatPhoneDisplay(loaded.phone),
+          // Documents written before the card existed have no such field, and
+          // the inputs below are controlled, so fill in the empty card.
+          businessCard: { ...EMPTY_BUSINESS_CARD, ...loaded.businessCard },
         });
       } catch (err) {
         toast.error(err instanceof Error ? err.message : 'Could not load settings.');
@@ -75,6 +79,11 @@ export default function AdminSettingsPage() {
       </>
     );
   }
+
+  // Read after the loading guard so `settings` is known to be present.
+  const card: BusinessCard = settings.businessCard ?? EMPTY_BUSINESS_CARD;
+  const patchCard = (patch: Partial<BusinessCard>) =>
+    setSettings({ ...settings, businessCard: { ...card, ...patch } });
 
   return (
     <>
@@ -160,6 +169,78 @@ export default function AdminSettingsPage() {
             hint="Optional. Leave empty to use the built-in wordmark."
             onChange={url => setSettings({ ...settings, logoUrl: url || undefined })}
           />
+        </Panel>
+
+        <Panel>
+          <PanelHeading note="Shown as its own section on the home page">
+            Business card
+          </PanelHeading>
+
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={card.enabled}
+              disabled={!card.imageUrl}
+              onChange={e => patchCard({ enabled: e.target.checked })}
+              className="w-4 h-4 accent-[#9e2b21] disabled:opacity-40"
+            />
+            <span className="type-small text-ink">
+              Show the business card on the home page
+            </span>
+          </label>
+
+          {!card.imageUrl && (
+            <p className="type-meta text-ink-3 mt-2">
+              Upload a card image below to enable this section.
+            </p>
+          )}
+
+          <div className="mt-5">
+            <LocalImageField
+              label="Card image"
+              folder="pages"
+              value={card.imageUrl}
+              placeholder="Upload the business card"
+              hint="A photograph or scan of the card. Landscape artwork looks best."
+              onChange={url =>
+                // Removing the art also switches the section off, matching what
+                // the API does — an enabled card with no image renders nothing.
+                patchCard(url ? { imageUrl: url } : { imageUrl: '', enabled: false })
+              }
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-5 mt-5">
+            <Field label="Heading">
+              <input
+                type="text"
+                value={card.heading || ''}
+                onChange={e => patchCard({ heading: e.target.value })}
+                placeholder="Keep our card"
+                className="field"
+              />
+            </Field>
+
+            <Field label="Caption">
+              <textarea
+                rows={2}
+                value={card.caption || ''}
+                onChange={e => patchCard({ caption: e.target.value })}
+                placeholder="Save it to your phone so our number is there the moment you need it."
+                className="field"
+              />
+            </Field>
+
+            <Field label="Alt text" hint="Describes the card for screen readers and when the image fails to load.">
+              <input
+                type="text"
+                value={card.alt || ''}
+                onChange={e => patchCard({ alt: e.target.value })}
+                placeholder="Business card for QP HVAC"
+                className="field"
+              />
+            </Field>
+          </div>
         </Panel>
 
         <Panel>

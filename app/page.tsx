@@ -3,6 +3,7 @@ import { Hero } from '@/components/home/Hero';
 import { DiagnosticTriage } from '@/components/home/DiagnosticTriage';
 import { WhyChooseUs } from '@/components/home/WhyChooseUs';
 import { Testimonials } from '@/components/home/Testimonials';
+import { BusinessCardSection } from '@/components/home/BusinessCardSection';
 import { ServiceCard } from '@/components/services/ServiceCard';
 import { BookingWizard } from '@/components/booking/BookingWizard';
 import { SiteHeader } from '@/components/layout/SiteHeader';
@@ -114,6 +115,14 @@ export default async function HomePage() {
         <WhyChooseUs />
 
         <Testimonials />
+
+        {/* Business card — renders only when one is uploaded and switched on. */}
+        <BusinessCardSection
+          card={settings.businessCard}
+          businessName={settings.businessName}
+          phone={settings.phone || APP_CONFIG.phone}
+          phoneDisplay={settings.phoneDisplay || APP_CONFIG.phoneDisplay}
+        />
 
         {/* Scheduling */}
         <Section id="fast-booking-section" tone="canvas" divide>

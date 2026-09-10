@@ -38,6 +38,7 @@ function BookingContent() {
           imageAlt={art.alt}
           imagePosition={art.position}
           align={art.align}
+          scrim={art.scrim}
           meta={[
             { label: 'Arrival', value: '30-minute call-ahead' },
             { label: 'Diagnostics', value: 'Flat-rate guarantee' },

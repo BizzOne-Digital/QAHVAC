@@ -10,7 +10,13 @@ export interface ServiceItem {
   features: string[];
   durationEstimate: string;
   emergencyAvailable: boolean;
+  /** Cover image. Used on cards, hero art and social previews. */
   image: string;
+  /**
+   * Additional photographs shown as a gallery on the service detail page.
+   * The cover is not repeated here; an empty list means "cover only".
+   */
+  images: string[];
   active: boolean;
   order: number;
 }
@@ -102,6 +108,24 @@ export interface SiteSettings {
     googleReviews?: string;
   };
   logoUrl?: string;
+  /** Optional business-card image promoted on the home page. */
+  businessCard?: BusinessCard;
+}
+
+/**
+ * The scanned business card shown on the home page. `enabled` is the single
+ * switch the admin flips; the section is also skipped whenever `imageUrl` is
+ * empty, so turning it on before uploading art cannot render an empty frame.
+ */
+export interface BusinessCard {
+  enabled: boolean;
+  imageUrl: string;
+  /** Section heading. Falls back to a sensible default when blank. */
+  heading?: string;
+  /** Short supporting line under the heading. */
+  caption?: string;
+  /** Alt text. Falls back to the business name when blank. */
+  alt?: string;
 }
 
 /**

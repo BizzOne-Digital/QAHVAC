@@ -92,6 +92,7 @@ export default function ContactPage() {
           imageAlt={art.alt}
           imagePosition={art.position}
           align={art.align}
+          scrim={art.scrim}
         />
 
         <Section tone="canvas">

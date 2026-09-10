@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { readJsonBody } from '@/lib/http';
 import { storage } from '@/lib/storage';
 import { verifyAdminAuth } from '@/lib/auth';
+import { MAX_SERVICE_IMAGES, isPublicImageUrl, normalizeImageList } from '@/lib/uploads/validation';
 
 export async function GET(
   req: NextRequest,
@@ -37,9 +38,22 @@ export async function PATCH(
     const parsed = await readJsonBody(req);
     if (!parsed.ok) return parsed.response;
     const body = parsed.body;
+
+    // Image fields are re-validated on the way in. Each is only touched when
+    // the body actually carries it, so a partial patch that omits `images`
+    // leaves the existing gallery alone instead of clearing it.
+    const imageFields: Partial<typeof existing> = {};
+    if ('images' in body) {
+      imageFields.images = normalizeImageList(body.images, MAX_SERVICE_IMAGES);
+    }
+    if ('image' in body) {
+      imageFields.image = isPublicImageUrl(body.image) ? body.image.trim() : existing.image;
+    }
+
     const updated = await storage.saveService({
       ...existing,
       ...body,
+      ...imageFields,
       id: existing.id, // Immutable ID
     });
 

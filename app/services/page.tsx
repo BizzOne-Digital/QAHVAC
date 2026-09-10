@@ -40,6 +40,7 @@ export default async function ServicesPage() {
           imageAlt={art.alt}
           imagePosition={art.position}
           align={art.align}
+          scrim={art.scrim}
           actions={
             <>
               <Button href="/booking" variant="inverse" size="lg">

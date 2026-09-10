@@ -31,6 +31,14 @@ export const INITIAL_SETTINGS: SiteSettings = {
     responseRate: '< 60 Min',
     satisfactionRate: '100%',
   },
+  // Off by default: the section only appears once an admin uploads a card.
+  businessCard: {
+    enabled: false,
+    imageUrl: '',
+    heading: 'Keep our card',
+    caption: 'Save it to your phone so our number is there the moment you need it.',
+    alt: '',
+  },
 };
 
 export const INITIAL_SERVICES: ServiceItem[] = [
@@ -51,6 +59,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
     emergencyAvailable: true,
     image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=1200&auto=format&fit=crop',
+    images: [],
     active: true,
     order: 1,
   },
@@ -71,6 +80,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: 'Diagnostic: 1 hour | Install: 1 day',
     emergencyAvailable: true,
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQg0FJKr_akCWpTXFeEXCoCEunHTkarALqX967icct7Qw&s=10',
+    images: [],
     active: true,
     order: 2,
   },
@@ -91,6 +101,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: 'Assessment: 1.5 hours | Install: 1-2 days',
     emergencyAvailable: false,
     image: 'https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=1200&auto=format&fit=crop',
+    images: [],
     active: true,
     order: 3,
   },
@@ -111,6 +122,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: 'Immediate response | 1-2 hours on-site',
     emergencyAvailable: true,
     image: 'https://images.unsplash.com/photo-1504328345606-18bbc8c9d7d1?q=80&w=1200&auto=format&fit=crop',
+    images: [],
     active: true,
     order: 4,
   },
@@ -131,6 +143,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: '1 to 1.5 hours per unit',
     emergencyAvailable: false,
     image: 'https://images.unsplash.com/photo-1581092580497-e0d23cbdf1dc?q=80&w=1200&auto=format&fit=crop',
+    images: [],
     active: true,
     order: 5,
   },
@@ -151,6 +164,7 @@ export const INITIAL_SERVICES: ServiceItem[] = [
     durationEstimate: 'Tailored to facility size',
     emergencyAvailable: true,
     image: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTJXV_5hkVZgYJorVuXTLOhjJaaEkI5LdorzXgZMYuiLg&s=10',
+    images: [],
     active: true,
     order: 6,
   }

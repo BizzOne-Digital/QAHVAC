@@ -23,6 +23,13 @@ interface PageHeroProps {
   imagePosition?: string;
   /** Text column side. Choose the side opposite the focal point. */
   align?: 'left' | 'right';
+  /**
+   * Strength of the readability wash over the photograph. `default` suits a
+   * bright frame; `soft` lifts it for a dim one that would otherwise crush to
+   * a flat black panel. Only the far side of the gradient changes — the text
+   * column keeps its full wash either way, so contrast is unaffected.
+   */
+  scrim?: 'default' | 'soft';
   /** `lg` for the homepage statement, `md` for interior pages. */
   size?: 'md' | 'lg';
   meta?: HeroMetaItem[];
@@ -44,11 +51,25 @@ export function PageHero({
   imageAlt,
   imagePosition = 'center',
   align = 'left',
+  scrim = 'default',
   size = 'md',
   meta,
   children,
 }: PageHeroProps) {
   const isRight = align === 'right';
+  const isSoft = scrim === 'soft';
+
+  const sideScrim = isSoft
+    ? isRight
+      ? 'bg-gradient-to-l from-obsidian via-obsidian/80 to-transparent'
+      : 'bg-gradient-to-r from-obsidian via-obsidian/80 to-transparent'
+    : isRight
+      ? 'bg-gradient-to-l from-obsidian via-obsidian/88 to-obsidian/25'
+      : 'bg-gradient-to-r from-obsidian via-obsidian/88 to-obsidian/25';
+
+  const edgeScrim = isSoft
+    ? 'bg-gradient-to-b from-obsidian/60 via-transparent to-obsidian/65'
+    : 'bg-gradient-to-b from-obsidian/75 via-transparent to-obsidian/80';
 
   return (
     <section
@@ -68,19 +89,9 @@ export function PageHero({
         />
 
         {/* Readability scrim: anchored to the text column, transparent over the subject. */}
-        <div
-          aria-hidden
-          className={`absolute inset-0 ${
-            isRight
-              ? 'bg-gradient-to-l from-obsidian via-obsidian/88 to-obsidian/25'
-              : 'bg-gradient-to-r from-obsidian via-obsidian/88 to-obsidian/25'
-          }`}
-        />
+        <div aria-hidden className={`absolute inset-0 ${sideScrim}`} />
         {/* Vertical settling, so the header and the section rule below both hold. */}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-b from-obsidian/75 via-transparent to-obsidian/80"
-        />
+        <div aria-hidden className={`absolute inset-0 ${edgeScrim}`} />
       </div>
 
       <Container className="relative">

@@ -15,6 +15,7 @@ export function Hero() {
       imageAlt={art.alt}
       imagePosition={art.position}
       align={art.align}
+      scrim={art.scrim}
       title={
         <>
           Family values,
